@@ -185,11 +185,11 @@ class ChequeRun(Document):
 				pe.base_paid_amount = total_amount
 				pe.paid_from_account_currency = account_currency
 				pe.paid_to_account_currency = account_currency
-				pe.target_exchange_rate = group[0].conversion_rate
-				pe.source_exchange_rate = group[0].conversion_rate
-				frappe.msgprint(f'{group[0].keys()}')
-				pe.save()
-				pe.submit()
+				pe.target_exchange_rate = 1.0
+				pe.source_exchange_rate = 1.0
+				frappe.msgprint(f'{group[0].conversion_rate}')
+				##pe.save()
+				#pe.submit()
 				for reference in _references:
 					reference.payment_entry = pe.name
 					_transactions.append(reference)
