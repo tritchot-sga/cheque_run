@@ -55,9 +55,12 @@
         methods: {
             transactionUrl: transactionId => {
                 if (!this.transactions) {
+                    alert("No transaction");
                     return ""
                 }
-                return encodeURI(frappe.urllib.get_base_url() + "/app/" + this.transactions[transactionId].doctype.toLowerCase().replace(" ", "-") + "/" + this.transactions[transactionId].name)
+                var test = encodeURI(frappe.urllib.get_base_url() + "/app/" + this.transactions[transactionId].doctype.toLowerCase().replace(" ", "-") + "/" + this.transactions[transactionId].name);
+                alert(test);
+                return test;
             },
             paymentEntryUrl: transactionId => {
                 if (!this.transactions) {
@@ -115,7 +118,7 @@
         <table class="table table-compact table-hover cheque-run-table" style="text-align: center; margin: 0;">
             <thead>
                 <tr>
-                    <th style="text-align:left cursor:pointer" class="col col-sm-2" id="cheque-run-party-filter">
+                    <th style="text-align:left; cursor:pointer" class="col col-sm-2" id="cheque-run-party-filter">
                         <span class="party-onclick party-display" @click="sortTransactions('party_ref')">
                             Supplier
                         </span> 
