@@ -518,7 +518,7 @@ def load_get_entries(doc):
 					`tabPayment Entry`.docstatus = 1
 			)
 	)
-	ORDER BY due_date
+	ORDER BY party_ref ASC, due_date ASC
 	""", {
 		'company': doc.company, 'pay_to_account': doc.pay_to_account,
 		'start_date': doc.start_date,'end_date': doc.end_date, 'start_discount_date':doc.start_discount_date,'end_discount_date':doc.end_discount_date
