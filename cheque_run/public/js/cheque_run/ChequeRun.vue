@@ -132,7 +132,7 @@
                     </th>
 
                     <th class="col col-sm-2">
-                        <span click="sortTransactions('supplier_ref')" class="cheque-run-sort-indicator" id="cheque-run-doc-sort">
+                        <span @click="sortTransactions('supplier_ref')" class="cheque-run-sort-indicator" id="cheque-run-doc-sort">
                             Supplier Number
                         </span>
                     </th>
