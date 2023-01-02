@@ -55,7 +55,6 @@
         methods: {
             transactionUrl: transactionId => {
                 if (!this.transactions) {
-                    alert("No transaction");
                     return ""
                 }
                 var test = encodeURI(frappe.urllib.get_base_url() + "/app/" + this.transactions[transactionId].doctype.toLowerCase().replace(" ", "-") + "/" + this.transactions[transactionId].name);
