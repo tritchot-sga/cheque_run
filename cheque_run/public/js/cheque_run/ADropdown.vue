@@ -75,7 +75,6 @@
 			document.addEventListener('click', this.handleClickOutside)
 			this.filterResults()
 			this.closeResults();
-			this.hideNac();
 		},
 		destroyed() {
 			document.removeEventListener('click', this.handleClickOutside)
