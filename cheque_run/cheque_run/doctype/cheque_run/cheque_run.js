@@ -103,7 +103,7 @@ frappe.ui.form.on("Cheque Run", {
 
 function mode_of_payement_change(frm) {
 	// $(".mopcls").val(frm.doc.mode_of_payment)
-	alert("Test");
+	
 	for (let i = 0; i < frm.transactions.length; i++) {
 		frm.transactions[i].mode_of_payment = frm.doc.mode_of_payment
 		// console.log(i + " -> " + frm.transactions[i].mode_of_payment);
@@ -148,6 +148,7 @@ function get_entries(frm) {
 			frm.$cheque_run.css({ 'pointer-events': 'none' })
 		}
 	})
+	alert("Test 1");
 }
 
 function load_get_entries(frm) {
@@ -161,6 +162,7 @@ function load_get_entries(frm) {
 			frm.$cheque_run.css({ 'pointer-events': 'none' })
 		}
 	})
+	alert("Test 2");
 }
 
 function total_cheque_run(frm) {
