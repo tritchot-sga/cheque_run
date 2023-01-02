@@ -53,11 +53,11 @@
             },
         },
         methods: {
-            transactionUrl: transactionId => {
-                if (!this.transactions) {
+            transactionUrl: transaction => {
+                if (!transaction) {
                     return ""
                 }
-                var test = encodeURI(frappe.urllib.get_base_url() + "/app/" + this.transactions[transactionId].doctype.toLowerCase().replace(" ", "-") + "/" + this.transactions[transactionId].name);
+                var test = encodeURI(frappe.urllib.get_base_url() + "/app/" + transaction.doctype.toLowerCase().replace(" ", "-") + "/" + transaction.name);
                 alert(test);
                 return test;
             },
@@ -194,7 +194,7 @@
                         </td>
 
                         <td>
-                            <a :href="transactionUrl(i)" target="_blank">
+                            <a :href="transactionUrl(item)" target="_blank">
                                 {{ item.ref_number || item.name}}
                             </a>
                         </td>
