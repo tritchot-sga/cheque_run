@@ -115,7 +115,7 @@
         <table class="table table-compact table-hover cheque-run-table" style="text-align: center; margin: 0;">
             <thead>
                 <tr>
-                    <th style="text-align: left" class="col col-sm-2" id="cheque-run-party-filter">
+                    <th style="text-align:left cursor:pointer" class="col col-sm-2" id="cheque-run-party-filter">
                         <span class="party-onclick party-display" @click="sortTransactions('party_ref')">
                             Supplier
                         </span> 
