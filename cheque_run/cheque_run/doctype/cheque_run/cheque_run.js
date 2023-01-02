@@ -61,7 +61,6 @@ frappe.ui.form.on("Cheque Run", {
 		frm.page.wrapper.find('.layout-side-section').hide()
 		permit_first_user(frm)
 		load_get_entries(frm)
-		// mode_of_payement_change(frm)
 	},
 	end_date: frm => {
 		load_get_entries(frm)
@@ -149,6 +148,12 @@ function get_entries(frm) {
 		}
 	})
 	alert("Test 1");
+
+	// Update modes of payment when entries are reloaded
+	if (frm.doc.mode_of_payment) {
+		alert("Test 3");
+		mode_of_payement_change(frm);
+	}
 }
 
 function load_get_entries(frm) {
