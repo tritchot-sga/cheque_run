@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include cheque_run *.css
+recursive-include cheque_run *.csv
+recursive-include cheque_run *.html
+recursive-include cheque_run *.ico
+recursive-include cheque_run *.js
+recursive-include cheque_run *.json
+recursive-include cheque_run *.md
+recursive-include cheque_run *.png
+recursive-include cheque_run *.py
+recursive-include cheque_run *.svg
+recursive-include cheque_run *.txt
+recursive-exclude cheque_run *.pyc

@@ -1,0 +1,6 @@
+{
+	"js/cheque_run.min.js": [
+		"public/js/cheque_run/cheque_run.js",
+		"public/js/cheque_run/cheque_run_quick_entry.js"
+	]
+}
