@@ -35,7 +35,7 @@
             return {
                 selectAll: false,
                 sort_order: {
-                    supplier_ref: 1,
+                    party_ref: 1,
                     posting_date: 1,
                     mode_of_payment: 1,
                     amount: 1,
@@ -116,7 +116,7 @@
             <thead>
                 <tr>
                     <th style="text-align: left" class="col col-sm-2" id="cheque-run-party-filter">
-                        <span class="party-onclick party-display" @click="sortTransactions('supplier_ref')">
+                        <span class="party-onclick party-display" @click="sortTransactions('party_ref')">
                             Supplier
                         </span> 
                         
@@ -131,8 +131,8 @@
                         </div>
                     </th>
 
-                    <th class="col col-sm-2">
-                        <span @click="sortTransactions('supplier_ref')" class="cheque-run-sort-indicator" id="cheque-run-doc-sort">
+                    <th class="col col-sm-2" style="white-space: nowrap; width: 12.49%; cursor: pointer">
+                        <span @click="sortTransactions('party_ref')">
                             Supplier Number
                         </span>
                     </th>
