@@ -155,6 +155,7 @@ class ChequeRun(Document):
 				pe.party_type = 'Supplier' if group[0].doctype == 'Purchase Invoice' else 'Employee'
 				pe.cheque_run = self.name
 				total_amount = 0
+
 				if pe.mode_of_payment == 'Cheque':
 					pe.reference_no = int(self.initial_cheque_number) + cheque_count
 					cheque_count += 1
@@ -176,14 +177,17 @@ class ChequeRun(Document):
 					total_amount += reference.amount
 					reference.cheque_number = pe.reference_no
 					_references.append(reference)
+
+
 				pe.received_amount = total_amount
 				pe.base_received_amount = total_amount
 				pe.paid_amount = total_amount
 				pe.base_paid_amount = total_amount
 				pe.paid_from_account_currency = account_currency
 				pe.paid_to_account_currency = account_currency
-				pe.target_exchange_rate = 1.0
-				pe.source_exchange_rate = 1.0
+				pe.target_exchange_rate = group[0].conversion_rate
+				pe.source_exchange_rate = group[0].conversion_rate
+				frappe.msgprint(f'{group[0].keys()}')
 				pe.save()
 				pe.submit()
 				for reference in _references:
@@ -319,6 +323,7 @@ def get_entries(doc):
 			`tabPurchase Invoice`.supplier_name AS party,
 			`tabPurchase Invoice`.supplier AS party_ref,
 			`tabPurchase Invoice`.outstanding_amount AS amount,
+			`tabPurchase Invoice`.conversion_rate,
 			`tabPurchase Invoice`.due_date,
 			`tabPurchase Invoice`.posting_date,
 			CASE WHEN `tabPurchase Invoice`.status = 'Paid' THEN 'true' else 'false' END as IsPaid,
@@ -344,6 +349,7 @@ def get_entries(doc):
 			`tabExpense Claim`.employee_name AS party,
 			`tabExpense Claim`.employee AS party_ref,
 			`tabExpense Claim`.grand_total AS amount,
+			1.0 AS conversion_rate,
 			`tabExpense Claim`.posting_date AS due_date,
 			`tabExpense Claim`.posting_date,
 			'false' as IsPaid,
@@ -368,6 +374,7 @@ def get_entries(doc):
 			`tabJournal Entry Account`.party AS party_ref,
 			`tabJournal Entry Account`.party_type,
 			`tabJournal Entry Account`.credit_in_account_currency AS amount,
+			`tabJournal Entry Account`.exchange_rate AS conversion_rate,
 			`tabJournal Entry`.due_date AS due_date,
 			`tabJournal Entry`.posting_date,
 			'false' as IsPaid,
@@ -429,7 +436,7 @@ def load_get_entries(doc):
 		doc.start_date=doc.start_date		
 	else:
 		doc.start_date="2019-01-01"
-		
+	
 	transactions =  frappe.db.sql("""
 	(
 		SELECT
@@ -440,6 +447,7 @@ def load_get_entries(doc):
 			`tabPurchase Invoice`.supplier_name AS party,
 			`tabPurchase Invoice`.supplier AS party_ref,
 			`tabPurchase Invoice`.outstanding_amount AS amount,
+			`tabPurchase Invoice`.conversion_rate,
 			`tabPurchase Invoice`.due_date,
 			`tabPurchase Invoice`.posting_date,
 			COALESCE(`tabPurchase Invoice`.supplier_default_mode_of_payment, `tabSupplier`.supplier_default_mode_of_payment, '\n') AS mode_of_payment,
@@ -468,6 +476,7 @@ def load_get_entries(doc):
 			`tabExpense Claim`.employee_name AS party,
 			`tabExpense Claim`.employee AS party_ref,
 			`tabExpense Claim`.grand_total AS amount,
+			1.0 AS conversion_rate,
 			`tabExpense Claim`.posting_date AS due_date,
 			`tabExpense Claim`.posting_date,
 			COALESCE(`tabExpense Claim`.mode_of_payment, `tabEmployee`.mode_of_payment, '\n') AS mode_of_payment,
@@ -493,6 +502,7 @@ def load_get_entries(doc):
 			`tabJournal Entry Account`.party AS party_ref,
 			`tabJournal Entry Account`.party_type,
 			`tabJournal Entry Account`.credit_in_account_currency AS amount,
+			`tabJournal Entry Account`.exchange_rate AS conversion_rate,
 			`tabJournal Entry`.due_date AS due_date,
 			`tabJournal Entry`.posting_date,
 			COALESCE(`tabJournal Entry`.mode_of_payment, '\n') AS mode_of_payment,

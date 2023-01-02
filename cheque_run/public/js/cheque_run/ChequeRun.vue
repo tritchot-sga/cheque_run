@@ -161,6 +161,12 @@
                         </span>
                     </th>
 
+                    <th class="col col-sm-2">
+                        <span>
+                            Exchange
+                        </span>
+                    </th>
+
                     <th class="col col-sm-1" style="cursor: pointer">
                         <span @click="sortTransactions('due_date')" class="cheque-run-sort-indicator" id="cheque-run-due-date-sort">
                             Due Date
@@ -219,6 +225,10 @@
 
                         <td>
                             {{ format_currency(item.amount, "USD", 2) }} {{ item.currency }}
+                        </td>
+
+                        <td>
+                            {{ item.conversion_rate }}
                         </td>
 
                         <td>
