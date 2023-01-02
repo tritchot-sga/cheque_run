@@ -57,15 +57,13 @@
                 if (!transaction) {
                     return ""
                 }
-                var test = encodeURI(frappe.urllib.get_base_url() + "/app/" + transaction.doctype.toLowerCase().replace(" ", "-") + "/" + transaction.name);
-                alert(test);
-                return test;
+                return encodeURI(frappe.urllib.get_base_url() + "/app/" + transaction.doctype.toLowerCase().replace(" ", "-") + "/" + transaction.name);
             },
-            paymentEntryUrl: transactionId => {
-                if (!this.transactions) {
+            paymentEntryUrl: transaction => {
+                if (!transaction) {
                     return ""
                 }
-                return encodeURI(frappe.urllib.get_base_url() + "/app/payment-entry/" + this.transactions[i].payment_entry);
+                return encodeURI(frappe.urllib.get_base_url() + "/app/payment-entry/" + transaction.payment_entry);
             },
             sortTransactions(key) {
                 this.transactions.sort((a, b) => (a[key] > b[key] ? this.sort_order[key] : this.sort_order[key] * -1));
@@ -241,7 +239,7 @@
                         </td>
 
                         <td v-else>
-                            <a :href="paymentEntryUrl(i)" target="_blank">
+                            <a :href="paymentEntryUrl(item)" target="_blank">
                                 {{ item.cheque_number }}
                             </a>
                         </td>
