@@ -195,31 +195,6 @@ class ChequeRun(Document):
 					_transactions.append(reference)
 		return _transactions
 
-
-## DELETE ME		
-def set_difference_amount(self):
-		base_unallocated_amount = flt(self.unallocated_amount) * (
-			flt(self.source_exchange_rate)
-			if self.payment_type == "Receive"
-			else flt(self.target_exchange_rate)
-		)
-
-		base_party_amount = flt(self.base_total_allocated_amount) + flt(base_unallocated_amount)
-
-		if self.payment_type == "Receive":
-			self.difference_amount = base_party_amount - self.base_received_amount
-		elif self.payment_type == "Pay":
-			self.difference_amount = self.base_paid_amount - base_party_amount
-		else:
-			self.difference_amount = self.base_paid_amount - flt(self.base_received_amount)
-
-		total_deductions = sum(flt(d.amount) for d in self.get("deductions"))
-		included_taxes = self.get_included_taxes()
-
-		self.difference_amount = flt(
-			self.difference_amount - total_deductions - included_taxes, self.precision("difference_amount")
-		)
-
 	def get_dimensions_from_references(self, references, dimension):
 		dimensions, default_dimensions = get_dimensions(with_cost_center_and_project=True)
 		parents = [reference.get('name') for reference in references if reference]
