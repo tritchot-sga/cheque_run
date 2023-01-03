@@ -102,7 +102,6 @@
 				if (!this.$el.contains(event.target)) {
 					this.closeResults()
 					this.arrowCounter = 0;
-					alert("Test 5");
 				}
 			},
 			closeResults() {
