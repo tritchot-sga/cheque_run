@@ -141,19 +141,16 @@ function get_entries(frm) {
 	).then((r) => {
 		frm.transactions = r.transactions
 		frm.modes_of_payment = r.modes_of_payment
+
+		// Update modes of payment when entries are reloaded
+		mode_of_payement_change(frm);
+
 		cheque_run.mount_table(frm)
 		if (!frappe.user.has_role(["Accounts Manager"])) {
 			frm.disable_form()
 			frm.$cheque_run.css({ 'pointer-events': 'none' })
 		}
 	})
-	alert("Test 1");
-
-	// Update modes of payment when entries are reloaded
-	if (frm.doc.mode_of_payment) {
-		alert("Test 3");
-		mode_of_payement_change(frm);
-	}
 }
 
 function load_get_entries(frm) {
@@ -167,7 +164,6 @@ function load_get_entries(frm) {
 			frm.$cheque_run.css({ 'pointer-events': 'none' })
 		}
 	})
-	alert("Test 2");
 }
 
 function total_cheque_run(frm) {
