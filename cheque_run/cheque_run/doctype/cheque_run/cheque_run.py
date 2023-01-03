@@ -325,14 +325,14 @@ def get_entries(doc):
 			`tabPurchase Invoice`.posting_date,
 			CASE WHEN `tabPurchase Invoice`.status = 'Paid' THEN 'true' else 'false' END as IsPaid,
 			COALESCE(`tabPurchase Invoice`.supplier_default_mode_of_payment, `tabSupplier`.supplier_default_mode_of_payment, '\n') AS mode_of_payment,
-			CASE WHEN `tabPayment Schedule`.discount_date < %(end_discount_date)s THEN 
+			CASE WHEN `tabPayment Schedule`.discount_date <= %(cheque_run_date)s THEN 
 				CASE WHEN `tabPayment Schedule`.discount_type = 'Amount' THEN 
 					`tabPayment Schedule`.discount
 				WHEN `tabPayment Schedule`.discount_type = 'Percentage' THEN
 					ROUND(`tabPurchase Invoice`.outstanding_amount * (`tabPayment Schedule`.discount / 100), 2)
 				ELSE 0 END
 			ELSE 0 END AS discount,
-			CASE WHEN `tabPayment Schedule`.discount_date < %(end_discount_date)s THEN 
+			CASE WHEN `tabPayment Schedule`.discount_date <= %(cheque_run_date)s THEN 
 				CASE WHEN `tabPayment Schedule`.discount_type = 'Amount' THEN 
 					`tabPurchase Invoice`.outstanding_amount - `tabPayment Schedule`.discount
 				WHEN `tabPayment Schedule`.discount_type = 'Percentage' THEN
@@ -347,7 +347,14 @@ def get_entries(doc):
 			`tabPurchase Invoice`.company = %(company)s AND
 			`tabPurchase Invoice`.docstatus = 1 AND
 			`tabPurchase Invoice`.credit_to = %(pay_to_account)s AND
-			`tabPurchase Invoice`.due_date <= %(end_date)s AND
+			(
+				`tabPurchase Invoice`.due_date <= %(end_date)s OR
+				(
+					`tabPayment Schedule`.discount != 0
+					`tabPayment Schedule`.discount_date >= %(start_discount_date)s AND
+					`tabPayment Schedule`.discount_date <= %(end_discount_date)s 
+				)
+			) AND
 			`tabPurchase Invoice`.status != 'On Hold'
 	)
 	UNION
@@ -416,7 +423,7 @@ def get_entries(doc):
 	)
 	ORDER BY party_ref ASC, due_date ASC
 	""", {
-		'company': doc.company, 'pay_to_account': doc.pay_to_account,
+		'company': doc.company, 'pay_to_account': doc.pay_to_account, 'cheque_run_date': doc.cheque_run_date,
 		'start_date': doc.start_date,'end_date': doc.end_date, 'start_discount_date':doc.start_discount_date,'end_discount_date':doc.end_discount_date
 	}, as_dict=True)
 	
@@ -466,14 +473,14 @@ def load_get_entries(doc):
 			`tabPurchase Invoice`.due_date,
 			`tabPurchase Invoice`.posting_date,
 			COALESCE(`tabPurchase Invoice`.supplier_default_mode_of_payment, `tabSupplier`.supplier_default_mode_of_payment, '\n') AS mode_of_payment,
-			CASE WHEN `tabPayment Schedule`.discount_date < %(end_discount_date)s THEN 
+			CASE WHEN `tabPayment Schedule`.discount_date <= %(cheque_run_date)s THEN 
 				CASE WHEN `tabPayment Schedule`.discount_type = 'Amount' THEN 
 					`tabPayment Schedule`.discount
 				WHEN `tabPayment Schedule`.discount_type = 'Percentage' THEN
 					ROUND(`tabPurchase Invoice`.outstanding_amount * (`tabPayment Schedule`.discount / 100), 2)
 				ELSE 0 END
 			ELSE 0 END AS discount,
-			CASE WHEN `tabPayment Schedule`.discount_date < %(end_discount_date)s THEN 
+			CASE WHEN `tabPayment Schedule`.discount_date <= %(cheque_run_date)s THEN 
 				CASE WHEN `tabPayment Schedule`.discount_type = 'Amount' THEN 
 					`tabPurchase Invoice`.outstanding_amount - `tabPayment Schedule`.discount
 				WHEN `tabPayment Schedule`.discount_type = 'Percentage' THEN
@@ -488,7 +495,14 @@ def load_get_entries(doc):
 			`tabPurchase Invoice`.company = %(company)s AND
 			`tabPurchase Invoice`.docstatus = 1 AND
 			`tabPurchase Invoice`.credit_to = %(pay_to_account)s AND
-			`tabPurchase Invoice`.due_date <= %(end_date)s AND
+			(
+				`tabPurchase Invoice`.due_date <= %(end_date)s OR
+				(
+					`tabPayment Schedule`.discount != 0
+					`tabPayment Schedule`.discount_date >= %(start_discount_date)s AND
+					`tabPayment Schedule`.discount_date <= %(end_discount_date)s 
+				)
+			) AND
 			`tabPurchase Invoice`.status != 'On Hold'
 	)
 	UNION
@@ -554,7 +568,7 @@ def load_get_entries(doc):
 	)
 	ORDER BY party_ref ASC, due_date ASC
 	""", {
-		'company': doc.company, 'pay_to_account': doc.pay_to_account,
+		'company': doc.company, 'pay_to_account': doc.pay_to_account, 'cheque_run_date': doc.cheque_run_date,
 		'start_date': doc.start_date,'end_date': doc.end_date, 'start_discount_date':doc.start_discount_date,'end_discount_date':doc.end_discount_date
 	}, as_dict=True)	
 	# convert list to dict	
