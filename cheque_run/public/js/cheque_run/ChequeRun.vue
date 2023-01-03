@@ -39,7 +39,9 @@
                     posting_date: 1,
                     mode_of_payment: 1,
                     amount: 1,
-                    due_date: 1
+                    due_date: 1,
+                    gross_amount: 1,
+                    discount: 1
                 },
                 modeOfPaymentNames: this.modes_of_payment.map(mop => mop.name)
             }
