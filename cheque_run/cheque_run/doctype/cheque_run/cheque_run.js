@@ -102,12 +102,11 @@ frappe.ui.form.on("Cheque Run", {
 
 function mode_of_payement_change(frm) {
 	for (let i = 0; i < frm.transactions.length; i++) {
-		if (frm.doc.mode_of_payment != undefined) {
+		if (frm.doc.mode_of_payment.length > 1) {
 			frm.transactions[i].mode_of_payment = frm.doc.mode_of_payment;
 		}
 	}
 	
-	curr_global_mop = frm.doc.mode_of_payment;
 	$(".mopcls").val(frm.doc.mode_of_payment);
 }
 
