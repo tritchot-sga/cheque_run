@@ -63,10 +63,8 @@ class ChequeRun(Document):
 				self.cheque_run_date = getdate()
 			if not self.end_date:
 				self.end_date = getdate()
-			# self.start_date = add_days(getdate(), -(getdate().weekday()) -1)
-			# self.end_date = add_days(self.start_date, 6)
-			self.start_discount_date = add_days(getdate(), -(getdate().weekday()) -1)
-			self.end_discount_date = add_days(self.start_discount_date, 6)			
+			self.start_discount_date = getdate()
+			self.end_discount_date = add_days(getdate(), 14)			
 
 	@frappe.whitelist()
 	def validate_last_cheque_number(self, cheque_number=None):
