@@ -100,17 +100,16 @@ frappe.ui.form.on("Cheque Run", {
 	}
 })
 
-var curr_mop = '';
+var curr_global_mop = '';
 function mode_of_payement_change(frm) {
-	alert(`OLD: ${curr_mop} - NEW ${frm.doc.mode_of_payment}`);
-	
 	for (let i = 0; i < frm.transactions.length; i++) {
-
-		//if frm.transactions[i].mode_of_payment.length > 1 && frm.transactions[i].mode_of_payment
-		frm.transactions[i].mode_of_payment = frm.doc.mode_of_payment;
+		// Don't update any methods of payment that have been individually changed manually.
+		if (frm.transactions[i].mode_of_payment.length <= 1 || frm.transactions[i].mode_of_payment == curr_global_mop) {
+			frm.transactions[i].mode_of_payment = frm.doc.mode_of_payment;
+		}
 	}
 	
-	curr_mop = frm.doc.mode_of_payment;
+	curr_global_mop = frm.doc.mode_of_payment;
 	$(".mopcls").val(frm.doc.mode_of_payment);
 }
 
