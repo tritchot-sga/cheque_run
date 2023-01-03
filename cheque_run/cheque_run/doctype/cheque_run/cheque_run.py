@@ -499,7 +499,6 @@ def load_get_entries(doc):
 				`tabPurchase Invoice`.due_date <= %(end_date)s OR
 				(
 					`tabPayment Schedule`.discount != 0 AND
-					
 					`tabPayment Schedule`.discount_date >= %(start_discount_date)s AND
 					`tabPayment Schedule`.discount_date <= %(end_discount_date)s 
 				)
