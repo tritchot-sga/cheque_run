@@ -325,14 +325,14 @@ def get_entries(doc):
 			`tabPurchase Invoice`.posting_date,
 			CASE WHEN `tabPurchase Invoice`.status = 'Paid' THEN 'true' else 'false' END as IsPaid,
 			COALESCE(`tabPurchase Invoice`.supplier_default_mode_of_payment, `tabSupplier`.supplier_default_mode_of_payment, '\n') AS mode_of_payment,
-			CASE WHEN `tabPayment Schedule`.discount_date <= %(cheque_run_date)s THEN 
+			CASE WHEN `tabPayment Schedule`.discount_date >= %(cheque_run_date)s THEN 
 				CASE WHEN `tabPayment Schedule`.discount_type = 'Amount' THEN 
 					`tabPayment Schedule`.discount
 				WHEN `tabPayment Schedule`.discount_type = 'Percentage' THEN
 					ROUND(`tabPurchase Invoice`.outstanding_amount * (`tabPayment Schedule`.discount / 100), 2)
 				ELSE 0 END
 			ELSE 0 END AS discount,
-			CASE WHEN `tabPayment Schedule`.discount_date <= %(cheque_run_date)s THEN 
+			CASE WHEN `tabPayment Schedule`.discount_date >= %(cheque_run_date)s THEN 
 				CASE WHEN `tabPayment Schedule`.discount_type = 'Amount' THEN 
 					`tabPurchase Invoice`.outstanding_amount - `tabPayment Schedule`.discount
 				WHEN `tabPayment Schedule`.discount_type = 'Percentage' THEN
@@ -473,14 +473,14 @@ def load_get_entries(doc):
 			`tabPurchase Invoice`.due_date,
 			`tabPurchase Invoice`.posting_date,
 			COALESCE(`tabPurchase Invoice`.supplier_default_mode_of_payment, `tabSupplier`.supplier_default_mode_of_payment, '\n') AS mode_of_payment,
-			CASE WHEN `tabPayment Schedule`.discount_date <= %(cheque_run_date)s THEN 
+			CASE WHEN `tabPayment Schedule`.discount_date >= %(cheque_run_date)s THEN 
 				CASE WHEN `tabPayment Schedule`.discount_type = 'Amount' THEN 
 					`tabPayment Schedule`.discount
 				WHEN `tabPayment Schedule`.discount_type = 'Percentage' THEN
 					ROUND(`tabPurchase Invoice`.outstanding_amount * (`tabPayment Schedule`.discount / 100), 2)
 				ELSE 0 END
 			ELSE 0 END AS discount,
-			CASE WHEN `tabPayment Schedule`.discount_date <= %(cheque_run_date)s THEN 
+			CASE WHEN `tabPayment Schedule`.discount_date >= %(cheque_run_date)s THEN 
 				CASE WHEN `tabPayment Schedule`.discount_type = 'Amount' THEN 
 					`tabPurchase Invoice`.outstanding_amount - `tabPayment Schedule`.discount
 				WHEN `tabPayment Schedule`.discount_type = 'Percentage' THEN
