@@ -68,6 +68,7 @@
             sortTransactions(key) {
                 this.transactions.sort((a, b) => (a[key] > b[key] ? this.sort_order[key] : this.sort_order[key] * -1));
                 this.sort_order[key] *= -1;
+                alert("Test 4");
             },
             partyIsInFilter(party) {
                 return cur_frm.cheque_run_state.party_filter.length < 1 || party.toLowerCase().includes(cur_frm.cheque_run_state.party_filter.toLowerCase());
