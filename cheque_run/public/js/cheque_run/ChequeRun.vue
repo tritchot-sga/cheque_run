@@ -156,6 +156,18 @@
                     </th>
 
                     <th class="col col-sm-2" style="cursor: pointer">
+                        <span @click="sortTransactions('gross_amount')" class="cheque-run-sort-indicator">
+                            Amount Before Discount
+                        </span>
+                    </th>
+
+                    <th class="col col-sm-2" style="cursor: pointer">
+                        <span @click="sortTransactions('discount')" class="cheque-run-sort-indicator">
+                            Discount
+                        </span>
+                    </th>
+
+                    <th class="col col-sm-2" style="cursor: pointer">
                         <span @click="sortTransactions('amount')" class="cheque-run-sort-indicator" id="cheque-run-outstanding-sort">
                             Outstanding Amount
                         </span>
@@ -215,6 +227,14 @@
                             <span v-else>
                                 {{ transactions[i].mode_of_payment }}
                             </span>
+                        </td>
+
+                        <td>
+                            {{ format_currency(item.gross_amount, "USD", 2) }}
+                        </td>
+
+                        <td>
+                            {{ format_currency(item.discount, "USD", 2) }}
                         </td>
 
                         <td>

@@ -321,17 +321,31 @@ def get_entries(doc):
 			`tabPurchase Invoice`.bill_no AS ref_number,
 			`tabPurchase Invoice`.supplier_name AS party,
 			`tabPurchase Invoice`.supplier AS party_ref,
-			`tabPurchase Invoice`.outstanding_amount AS amount,
+			`tabPurchase Invoice`.outstanding_amount AS gross_amount,
 			`tabPurchase Invoice`.conversion_rate,
 			`tabPurchase Invoice`.due_date,
 			`tabPurchase Invoice`.posting_date,
 			CASE WHEN `tabPurchase Invoice`.status = 'Paid' THEN 'true' else 'false' END as IsPaid,
-			COALESCE(`tabPurchase Invoice`.supplier_default_mode_of_payment, `tabSupplier`.supplier_default_mode_of_payment, '\n') AS mode_of_payment
-		FROM 
-			`tabPurchase Invoice`, `tabSupplier`
+			COALESCE(`tabPurchase Invoice`.supplier_default_mode_of_payment, `tabSupplier`.supplier_default_mode_of_payment, '\n') AS mode_of_payment,
+			CASE WHEN `tabPayment Schedule`.discount_date < %(end_discount_date)s THEN 
+				CASE WHEN `tabPayment Schedule`.discount_type = 'Amount' THEN 
+					`tabPayment Schedule`.discount
+				WHEN `tabPayment Schedule`.discount_type = 'Percentage' THEN
+					ROUND(`tabPurchase Invoice`.outstanding_amount * (`tabPayment Schedule`.discount / 100), 2)
+				ELSE 0 END
+			ELSE 0 END AS discount,
+			CASE WHEN `tabPayment Schedule`.discount_date < %(end_discount_date)s THEN 
+				CASE WHEN `tabPayment Schedule`.discount_type = 'Amount' THEN 
+					`tabPurchase Invoice`.outstanding_amount - `tabPayment Schedule`.discount
+				WHEN `tabPayment Schedule`.discount_type = 'Percentage' THEN
+					`tabPurchase Invoice`.outstanding_amount - ROUND(`tabPurchase Invoice`.outstanding_amount * (`tabPayment Schedule`.discount / 100), 2)
+				ELSE `tabPurchase Invoice`.outstanding_amount END
+			ELSE `tabPurchase Invoice`.outstanding_amount END AS amount
+		FROM `tabPurchase Invoice`
+		INNER JOIN `tabSupplier` ON `tabSupplier`.name = `tabPurchase Invoice`.supplier
+		INNER JOIN `tabPayment Schedule` ON `tabPayment Schedule`.parent = `tabPurchase Invoice`.name 
 		WHERE 
 			`tabPurchase Invoice`.outstanding_amount > 0 AND
-			`tabPurchase Invoice`.supplier = `tabSupplier`.name AND
 			`tabPurchase Invoice`.company = %(company)s AND
 			`tabPurchase Invoice`.docstatus = 1 AND
 			`tabPurchase Invoice`.credit_to = %(pay_to_account)s AND
@@ -347,12 +361,14 @@ def get_entries(doc):
 			`tabExpense Claim`.name AS ref_number,
 			`tabExpense Claim`.employee_name AS party,
 			`tabExpense Claim`.employee AS party_ref,
-			`tabExpense Claim`.grand_total AS amount,
+			`tabExpense Claim`.grand_total AS gross_amount,
 			1.0 AS conversion_rate,
 			`tabExpense Claim`.posting_date AS due_date,
 			`tabExpense Claim`.posting_date,
 			'false' as IsPaid,
-			COALESCE(`tabExpense Claim`.mode_of_payment, `tabEmployee`.mode_of_payment, '\n') AS mode_of_payment
+			COALESCE(`tabExpense Claim`.mode_of_payment, `tabEmployee`.mode_of_payment, '\n') AS mode_of_payment,
+			0 as discount,
+			`tabExpense Claim`.grand_total AS amount
 		FROM 
 			`tabExpense Claim`, `tabEmployee`
 		WHERE 
@@ -372,12 +388,14 @@ def get_entries(doc):
 			`tabJournal Entry Account`.party AS party,
 			`tabJournal Entry Account`.party AS party_ref,
 			`tabJournal Entry Account`.party_type,
-			`tabJournal Entry Account`.credit_in_account_currency AS amount,
+			`tabJournal Entry Account`.credit_in_account_currency AS gross_amount,
 			`tabJournal Entry Account`.exchange_rate AS conversion_rate,
 			`tabJournal Entry`.due_date AS due_date,
 			`tabJournal Entry`.posting_date,
 			'false' as IsPaid,
-			COALESCE(`tabJournal Entry`.mode_of_payment, '\n') AS mode_of_payment
+			COALESCE(`tabJournal Entry`.mode_of_payment, '\n') AS mode_of_payment,
+			0 as discount,
+			`tabJournal Entry Account`.credit_in_account_currency AS amount
 		FROM 
 			`tabJournal Entry`, `tabJournal Entry Account`
 		WHERE 
@@ -445,25 +463,35 @@ def load_get_entries(doc):
 			`tabPurchase Invoice`.bill_no AS ref_number,
 			`tabPurchase Invoice`.supplier_name AS party,
 			`tabPurchase Invoice`.supplier AS party_ref,
-			`tabPurchase Invoice`.outstanding_amount AS amount,
+			`tabPurchase Invoice`.outstanding_amount AS gross_amount,
 			`tabPurchase Invoice`.conversion_rate,
 			`tabPurchase Invoice`.due_date,
 			`tabPurchase Invoice`.posting_date,
 			COALESCE(`tabPurchase Invoice`.supplier_default_mode_of_payment, `tabSupplier`.supplier_default_mode_of_payment, '\n') AS mode_of_payment,
-			`tabPayment Schedule`.discount_date as discount_date
-		FROM 
-			`tabPurchase Invoice`, `tabSupplier`,`tabPayment Schedule`
+			CASE WHEN `tabPayment Schedule`.discount_date < %(end_discount_date)s THEN 
+				CASE WHEN `tabPayment Schedule`.discount_type = 'Amount' THEN 
+					`tabPayment Schedule`.discount
+				WHEN `tabPayment Schedule`.discount_type = 'Percentage' THEN
+					ROUND(`tabPurchase Invoice`.outstanding_amount * (`tabPayment Schedule`.discount / 100), 2)
+				ELSE 0 END
+			ELSE 0 END AS discount,
+			CASE WHEN `tabPayment Schedule`.discount_date < %(end_discount_date)s THEN 
+				CASE WHEN `tabPayment Schedule`.discount_type = 'Amount' THEN 
+					`tabPurchase Invoice`.outstanding_amount - `tabPayment Schedule`.discount
+				WHEN `tabPayment Schedule`.discount_type = 'Percentage' THEN
+					`tabPurchase Invoice`.outstanding_amount - ROUND(`tabPurchase Invoice`.outstanding_amount * (`tabPayment Schedule`.discount / 100), 2)
+				ELSE `tabPurchase Invoice`.outstanding_amount END
+			ELSE `tabPurchase Invoice`.outstanding_amount END AS amount
+		FROM `tabPurchase Invoice`
+		INNER JOIN `tabSupplier` ON `tabSupplier`.name = `tabPurchase Invoice`.supplier
+		INNER JOIN `tabPayment Schedule` ON `tabPayment Schedule`.parent = `tabPurchase Invoice`.name 
 		WHERE 
 			`tabPurchase Invoice`.outstanding_amount > 0 AND
-			`tabPurchase Invoice`.supplier = `tabSupplier`.name AND
 			`tabPurchase Invoice`.company = %(company)s AND
 			`tabPurchase Invoice`.docstatus = 1 AND
 			`tabPurchase Invoice`.credit_to = %(pay_to_account)s AND
 			`tabPurchase Invoice`.due_date <= %(end_date)s AND
-			`tabPurchase Invoice`.due_date >= %(start_date)s AND
-			`tabPurchase Invoice`.status != 'On Hold' AND
-			`tabPurchase Invoice`.name = `tabPayment Schedule`.parent AND
-			`tabPayment Schedule`.parenttype='Purchase Invoice'
+			`tabPurchase Invoice`.status != 'On Hold'
 	)
 	UNION
 	(
@@ -474,12 +502,13 @@ def load_get_entries(doc):
 			`tabExpense Claim`.name AS ref_number,
 			`tabExpense Claim`.employee_name AS party,
 			`tabExpense Claim`.employee AS party_ref,
-			`tabExpense Claim`.grand_total AS amount,
+			`tabExpense Claim`.grand_total AS gross_amount,
 			1.0 AS conversion_rate,
 			`tabExpense Claim`.posting_date AS due_date,
 			`tabExpense Claim`.posting_date,
 			COALESCE(`tabExpense Claim`.mode_of_payment, `tabEmployee`.mode_of_payment, '\n') AS mode_of_payment,
-			'' as discount_date
+			0 as discount,
+			`tabExpense Claim`.grand_total AS amount
 		FROM 
 			`tabExpense Claim`, `tabEmployee`
 		WHERE 
@@ -488,8 +517,7 @@ def load_get_entries(doc):
 			`tabExpense Claim`.company = %(company)s AND
 			`tabExpense Claim`.docstatus = 1 AND
 			`tabExpense Claim`.payable_account = %(pay_to_account)s AND
-			`tabExpense Claim`.posting_date <= %(end_date)s AND
-			`tabExpense Claim`.posting_date >= %(start_date)s
+			`tabExpense Claim`.posting_date <= %(end_date)s
 	)
 	UNION 
 	(
@@ -500,12 +528,13 @@ def load_get_entries(doc):
 			`tabJournal Entry Account`.party AS party,
 			`tabJournal Entry Account`.party AS party_ref,
 			`tabJournal Entry Account`.party_type,
-			`tabJournal Entry Account`.credit_in_account_currency AS amount,
+			`tabJournal Entry Account`.credit_in_account_currency AS gross_amount,
 			`tabJournal Entry Account`.exchange_rate AS conversion_rate,
 			`tabJournal Entry`.due_date AS due_date,
 			`tabJournal Entry`.posting_date,
 			COALESCE(`tabJournal Entry`.mode_of_payment, '\n') AS mode_of_payment,
-			'' as discount_date
+			0 as discount,
+			`tabJournal Entry Account`.credit_in_account_currency AS amount
 		FROM 
 			`tabJournal Entry`, `tabJournal Entry Account`
 		WHERE 
@@ -514,9 +543,7 @@ def load_get_entries(doc):
 			`tabJournal Entry`.docstatus = 1 AND
 			`tabJournal Entry Account`.account = %(pay_to_account)s		 AND
 			`tabJournal Entry`.due_date <= %(end_date)s AND
-			`tabJournal Entry`.due_date >= %(start_date)s AND
-			`tabJournal Entry`.name 
-			NOT in (
+			`tabJournal Entry`.name NOT in (
 				SELECT 
 					`tabPayment Entry Reference`.reference_name
 				FROM 
