@@ -192,11 +192,7 @@
 
             <tbody>
                 <template v-for="(item, i) in transactions">
-                    <tr v-if="partyIsInFilter(item.party)" 
-                        :key=i class="chequerun-row-container" 
-                        :class="{ selectedRow: state.selectedRow == i }" tabindex="1" 
-                        @click="state.selectedRow = i"
-                    >
+                    <tr v-if="partyIsInFilter(item.party)" class="chequerun-row-container">
                         <td style="text-align: left">
                             {{ item.party }}
                         </td>
