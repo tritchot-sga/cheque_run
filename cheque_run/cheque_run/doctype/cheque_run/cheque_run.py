@@ -305,12 +305,84 @@ def get_entries(doc):
 	#modes_of_payment = frappe.get_all('Mode of Payment' ,filters = {'name':'Cheque'}, order_by='name')
 	if frappe.db.exists('Cheque Run', doc.name):		
 		db_doc = frappe.get_doc('Cheque Run', doc.name)				
-		# if db_doc.transactions and json.loads(db_doc.transactions):
-		# 	return {'transactions': json.loads(db_doc.transactions), 'modes_of_payment': modes_of_payment}	.
-		if doc.start_date == db_doc.start_date and doc.end_date == db_doc.end_date and db_doc.transactions:
+
+		if has_existing_transactions(doc, db_doc):
 			return {'transactions': json.loads(db_doc.transactions), 'modes_of_payment': modes_of_payment}	
+	
+	transactions = query_transactions(doc)
+	
+	return {'transactions': transactions, 'modes_of_payment': modes_of_payment}
+
+@frappe.whitelist()
+def load_get_entries(doc):
+	doc = frappe._dict(json.loads(doc)) if isinstance(doc, str) else doc
+	if isinstance(doc.end_date, str):
+		doc.end_date = getdate(doc.end_date) 
+	modes_of_payment = frappe.get_all('Mode of Payment' , order_by='name')
+	#modes_of_payment = frappe.get_all('Mode of Payment' ,filters = {'name':'Cheque'}, order_by='name')
+	trans_dict=[]
+	tran=[]
+	AllTran_dict=[]
+	Final_Tran=[]
+
+	if frappe.db.exists('Cheque Run', doc.name):			
+		db_doc = frappe.get_doc('Cheque Run', doc.name)	
 		
-	transactions =  frappe.db.sql("""
+		if has_existing_transactions(doc, db_doc):
+			tran=json.loads(db_doc.transactions)	
+			trans_dict = {entry.get('name'): entry for entry in tran}	
+
+	if doc.start_date:
+		doc.start_date=doc.start_date	
+	else:
+		doc.start_date="2019-01-01"	
+	
+	transactions = query_transactions(doc)
+
+	# convert list to dict	
+	if transactions:
+		AllTran_dict = {entry.get('name'): entry for entry in transactions}	
+		
+	if trans_dict and AllTran_dict:
+		# set operation to find common	
+		common_entries = AllTran_dict.keys() & (trans_dict.keys())
+		for _common in common_entries:			
+			Final_Tran.append(trans_dict.get(_common))
+		
+		# set operation to find new
+		new_entries = AllTran_dict.keys() - trans_dict.keys()	
+		for _id in new_entries:			
+			Final_Tran.append(AllTran_dict.get(_id))
+	elif AllTran_dict:		
+		Final_Tran=transactions
+	elif trans_dict:	
+		Final_Tran=tran
+	else:	
+		Final_Tran=[]
+
+	Final_Tran = sorted(Final_Tran, key=lambda d: d['due_date'])
+	Final_Tran = sorted(Final_Tran, key=lambda d: d['party_ref'])
+
+	return {'transactions': Final_Tran, 'modes_of_payment': modes_of_payment}
+
+@frappe.whitelist()
+def get_balance(doc):
+	doc = frappe._dict(json.loads(doc)) if isinstance(doc, str) else doc
+	if not doc.bank_account or not doc.cheque_run_date:
+		return
+	gl_account = frappe.get_value('Bank Account', doc.bank_account, 'account')
+	return get_balance_on(gl_account, doc.cheque_run_date)
+
+def has_existing_transactions(doc, db_doc):
+	start_match = (doc.start_date == db_doc.start_date) or (doc.start_date == None and db_doc.start_date == None)
+	end_match = (doc.end_date == db_doc.end_date) or (doc.end_date == None and db_doc.end_date == None)
+	has_transactions = db_doc.transactions and start_match and end_match
+	frappe.msgprint(f'Start: {start_match}, End: {end_match}, Transactions: {db_doc.transactions}\n\nMatch? {has_transactions}')
+
+	return start_match and end_match and has_transactions
+
+def query_transactions(doc):
+	return frappe.db.sql("""
 	(
 		SELECT
 			'Purchase Invoice' as doctype,
@@ -407,152 +479,6 @@ def get_entries(doc):
 			`tabJournal Entry`.name = `tabJournal Entry Account`.parent AND
 			`tabJournal Entry`.company = %(company)s AND
 			`tabJournal Entry`.docstatus = 1 AND
-			`tabJournal Entry Account`.account = %(pay_to_account)s AND
-			`tabJournal Entry`.due_date <= %(end_date)s AND
-			`tabJournal Entry`.name 
-			NOT in (
-				SELECT 
-					`tabPayment Entry Reference`.reference_name
-				FROM 
-					`tabPayment Entry`, `tabPayment Entry Reference`
-				WHERE 
-					`tabPayment Entry Reference`.parent = `tabPayment Entry`.name AND
-					`tabPayment Entry Reference`.reference_doctype = 'Journal Entry' AND
-					`tabPayment Entry`.docstatus = 1
-			)
-	)
-	ORDER BY party_ref ASC, due_date ASC
-	""", {
-		'company': doc.company, 'pay_to_account': doc.pay_to_account, 'cheque_run_date': doc.cheque_run_date,
-		'start_date': doc.start_date,'end_date': doc.end_date, 'start_discount_date':doc.start_discount_date,'end_discount_date':doc.end_discount_date
-	}, as_dict=True)
-	
-	# for transaction in transactions:
-	# 	if transaction.doctype == 'Journal Entry':
-	# 		if transaction.party_type == 'Supplier':
-	# 			transaction.party_name = frappe.get_value('Supplier', transaction.party, 'supplier_name')
-	# 			transaction.mode_of_payment = frappe.get_value('Supplier', transaction.party, 'supplier_default_mode_of_payment')
-	# 		if transaction.party_type == 'Employee':
-	# 			transaction.party_name = frappe.get_value('Employee', transaction.party, 'employee_name')
-	# 			transaction.mode_of_payment = frappe.get_value('Employee', transaction.party, 'mode_of_payment')
-	return {'transactions': transactions, 'modes_of_payment': modes_of_payment}
-
-@frappe.whitelist()
-def load_get_entries(doc):
-	doc = frappe._dict(json.loads(doc)) if isinstance(doc, str) else doc
-	if isinstance(doc.end_date, str):
-		doc.end_date = getdate(doc.end_date) 
-	modes_of_payment = frappe.get_all('Mode of Payment' , order_by='name')
-	#modes_of_payment = frappe.get_all('Mode of Payment' ,filters = {'name':'Cheque'}, order_by='name')
-	trans_dict=[]
-	tran=[]
-	AllTran_dict=[]
-	Final_Tran=[]
-	if frappe.db.exists('Cheque Run', doc.name):			
-		db_doc = frappe.get_doc('Cheque Run', doc.name)	
-		
-		if doc.start_date == db_doc.start_date and doc.end_date == db_doc.end_date and db_doc.transactions:
-			tran=json.loads(db_doc.transactions)	
-			trans_dict = {entry.get('name'): entry for entry in tran}	
-	if doc.start_date:
-		doc.start_date=doc.start_date		
-	else:
-		doc.start_date="2019-01-01"
-	
-	transactions =  frappe.db.sql("""
-	(
-		SELECT
-			'Purchase Invoice' as doctype,
-			'Supplier' AS party_type,
-			`tabPurchase Invoice`.name,
-			`tabPurchase Invoice`.bill_no AS ref_number,
-			`tabPurchase Invoice`.supplier_name AS party,
-			`tabPurchase Invoice`.supplier AS party_ref,
-			`tabPurchase Invoice`.outstanding_amount AS gross_amount,
-			`tabPurchase Invoice`.conversion_rate,
-			`tabPurchase Invoice`.due_date,
-			`tabPurchase Invoice`.posting_date,
-			COALESCE(`tabPurchase Invoice`.supplier_default_mode_of_payment, `tabSupplier`.supplier_default_mode_of_payment, '\n') AS mode_of_payment,
-			CASE WHEN `tabPayment Schedule`.discount_date >= %(cheque_run_date)s THEN 
-				CASE WHEN `tabPayment Schedule`.discount_type = 'Amount' THEN 
-					`tabPayment Schedule`.discount
-				WHEN `tabPayment Schedule`.discount_type = 'Percentage' THEN
-					ROUND(`tabPurchase Invoice`.outstanding_amount * (`tabPayment Schedule`.discount / 100), 2)
-				ELSE 0 END
-			ELSE 0 END AS discount,
-			CASE WHEN `tabPayment Schedule`.discount_date >= %(cheque_run_date)s THEN 
-				CASE WHEN `tabPayment Schedule`.discount_type = 'Amount' THEN 
-					`tabPurchase Invoice`.outstanding_amount - `tabPayment Schedule`.discount
-				WHEN `tabPayment Schedule`.discount_type = 'Percentage' THEN
-					`tabPurchase Invoice`.outstanding_amount - ROUND(`tabPurchase Invoice`.outstanding_amount * (`tabPayment Schedule`.discount / 100), 2)
-				ELSE `tabPurchase Invoice`.outstanding_amount END
-			ELSE `tabPurchase Invoice`.outstanding_amount END AS amount
-		FROM `tabPurchase Invoice`
-		INNER JOIN `tabSupplier` ON `tabSupplier`.name = `tabPurchase Invoice`.supplier
-		INNER JOIN `tabPayment Schedule` ON `tabPayment Schedule`.parent = `tabPurchase Invoice`.name 
-		WHERE 
-			`tabPurchase Invoice`.outstanding_amount > 0 AND
-			`tabPurchase Invoice`.company = %(company)s AND
-			`tabPurchase Invoice`.docstatus = 1 AND
-			`tabPurchase Invoice`.credit_to = %(pay_to_account)s AND
-			(
-				`tabPurchase Invoice`.due_date <= %(end_date)s OR
-				(
-					`tabPayment Schedule`.discount != 0 AND
-					`tabPayment Schedule`.discount_date >= %(start_discount_date)s AND
-					`tabPayment Schedule`.discount_date <= %(end_discount_date)s 
-				)
-			) AND
-			`tabPurchase Invoice`.status != 'On Hold'
-	)
-	UNION
-	(
-		SELECT
-			'Expense Claim' as doctype,
-			'Employee' AS party_type,
-			`tabExpense Claim`.name,
-			`tabExpense Claim`.name AS ref_number,
-			`tabExpense Claim`.employee_name AS party,
-			`tabExpense Claim`.employee AS party_ref,
-			`tabExpense Claim`.grand_total AS gross_amount,
-			1.0 AS conversion_rate,
-			`tabExpense Claim`.posting_date AS due_date,
-			`tabExpense Claim`.posting_date,
-			COALESCE(`tabExpense Claim`.mode_of_payment, `tabEmployee`.mode_of_payment, '\n') AS mode_of_payment,
-			0 as discount,
-			`tabExpense Claim`.grand_total AS amount
-		FROM 
-			`tabExpense Claim`, `tabEmployee`
-		WHERE 
-			`tabExpense Claim`.grand_total > `tabExpense Claim`.total_amount_reimbursed AND
-			`tabExpense Claim`.employee = `tabEmployee`.name AND
-			`tabExpense Claim`.company = %(company)s AND
-			`tabExpense Claim`.docstatus = 1 AND
-			`tabExpense Claim`.payable_account = %(pay_to_account)s AND
-			`tabExpense Claim`.posting_date <= %(end_date)s
-	)
-	UNION 
-	(
-		SELECT
-			'Journal Entry' AS doctype,
-			`tabJournal Entry`.name,
-			`tabJournal Entry`.name AS ref_number,
-			`tabJournal Entry Account`.party AS party,
-			`tabJournal Entry Account`.party AS party_ref,
-			`tabJournal Entry Account`.party_type,
-			`tabJournal Entry Account`.credit_in_account_currency AS gross_amount,
-			`tabJournal Entry Account`.exchange_rate AS conversion_rate,
-			`tabJournal Entry`.due_date AS due_date,
-			`tabJournal Entry`.posting_date,
-			COALESCE(`tabJournal Entry`.mode_of_payment, '\n') AS mode_of_payment,
-			0 as discount,
-			`tabJournal Entry Account`.credit_in_account_currency AS amount
-		FROM 
-			`tabJournal Entry`, `tabJournal Entry Account`
-		WHERE 
-			`tabJournal Entry`.name = `tabJournal Entry Account`.parent AND
-			`tabJournal Entry`.company = %(company)s AND
-			`tabJournal Entry`.docstatus = 1 AND
 			`tabJournal Entry Account`.account = %(pay_to_account)s		 AND
 			`tabJournal Entry`.due_date <= %(end_date)s AND
 			`tabJournal Entry`.name NOT in (
@@ -569,46 +495,11 @@ def load_get_entries(doc):
 	ORDER BY party_ref ASC, due_date ASC
 	""", {
 		'company': doc.company, 'pay_to_account': doc.pay_to_account, 'cheque_run_date': doc.cheque_run_date,
-		'start_date': doc.start_date,'end_date': doc.end_date, 'start_discount_date':doc.start_discount_date,'end_discount_date':doc.end_discount_date
-	}, as_dict=True)	
-	# convert list to dict	
-	if transactions:
-		AllTran_dict = {entry.get('name'): entry for entry in transactions}	
-		
-	if trans_dict and AllTran_dict:
-		# set operation to find common	
-		common_entries = AllTran_dict.keys() & (trans_dict.keys())
-		for _common in common_entries:			
-			Final_Tran.append(trans_dict.get(_common))
-		
-		# set operation to find new
-		new_entries = AllTran_dict.keys() - trans_dict.keys()	
-		for _id in new_entries:			
-			Final_Tran.append(AllTran_dict.get(_id))
-	elif AllTran_dict:		
-		Final_Tran=transactions
-	elif trans_dict:	
-		Final_Tran=tran
-	else:	
-		Final_Tran=[]
-
-	Final_Tran = sorted(Final_Tran, key=lambda d: d['due_date'])
-	Final_Tran = sorted(Final_Tran, key=lambda d: d['party_ref'])
-
-	return {'transactions': Final_Tran, 'modes_of_payment': modes_of_payment}
-
-@frappe.whitelist()
-def get_balance(doc):
-	doc = frappe._dict(json.loads(doc)) if isinstance(doc, str) else doc
-	if not doc.bank_account or not doc.cheque_run_date:
-		return
-	gl_account = frappe.get_value('Bank Account', doc.bank_account, 'account')
-	return get_balance_on(gl_account, doc.cheque_run_date)
-
+		'end_date': doc.end_date, 'start_discount_date':doc.start_discount_date,'end_discount_date':doc.end_discount_date
+	}, as_dict=True)
 
 def mode_dimensions_from_doc_items(doc, dimension='cost_center'):
 	return mode_dimensions(doc.items, dimension)
-
 
 def mode_dimensions(data, dimension='cost_center'):
 	dimensions = frappe._dict()
