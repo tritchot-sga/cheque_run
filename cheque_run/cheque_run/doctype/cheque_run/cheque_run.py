@@ -305,12 +305,21 @@ def get_entries(doc):
 	#modes_of_payment = frappe.get_all('Mode of Payment' ,filters = {'name':'Cheque'}, order_by='name')
 	if frappe.db.exists('Cheque Run', doc.name):		
 		db_doc = frappe.get_doc('Cheque Run', doc.name)				
-
-		if has_existing_transactions(doc, db_doc):
+		# if db_doc.transactions and json.loads(db_doc.transactions):
+		# 	return {'transactions': json.loads(db_doc.transactions), 'modes_of_payment': modes_of_payment}	.
+		if doc.start_date == db_doc.start_date and doc.end_date == db_doc.end_date and db_doc.transactions:
 			return {'transactions': json.loads(db_doc.transactions), 'modes_of_payment': modes_of_payment}	
+		
+	transactions = query_pending_transactions(doc)
 	
-	transactions = query_transactions(doc)
-	
+	# for transaction in transactions:
+	# 	if transaction.doctype == 'Journal Entry':
+	# 		if transaction.party_type == 'Supplier':
+	# 			transaction.party_name = frappe.get_value('Supplier', transaction.party, 'supplier_name')
+	# 			transaction.mode_of_payment = frappe.get_value('Supplier', transaction.party, 'supplier_default_mode_of_payment')
+	# 		if transaction.party_type == 'Employee':
+	# 			transaction.party_name = frappe.get_value('Employee', transaction.party, 'employee_name')
+	# 			transaction.mode_of_payment = frappe.get_value('Employee', transaction.party, 'mode_of_payment')
 	return {'transactions': transactions, 'modes_of_payment': modes_of_payment}
 
 @frappe.whitelist()
@@ -324,20 +333,21 @@ def load_get_entries(doc):
 	tran=[]
 	AllTran_dict=[]
 	Final_Tran=[]
-
 	if frappe.db.exists('Cheque Run', doc.name):			
 		db_doc = frappe.get_doc('Cheque Run', doc.name)	
 		
-		if has_existing_transactions(doc, db_doc):
+		if db_doc.docstatus == 1:
+			return {'transactions': json.loads(db_doc.transactions), 'modes_of_payment': modes_of_payment}	
+
+		if doc.start_date == db_doc.start_date and doc.end_date == db_doc.end_date and db_doc.transactions:
 			tran=json.loads(db_doc.transactions)	
 			trans_dict = {entry.get('name'): entry for entry in tran}	
-
 	if doc.start_date:
-		doc.start_date=doc.start_date	
+		doc.start_date=doc.start_date		
 	else:
-		doc.start_date="2019-01-01"	
-	
-	transactions = query_transactions(doc)
+		doc.start_date="2019-01-01"
+		
+	transactions = query_pending_transactions(doc)
 
 	# convert list to dict	
 	if transactions:
@@ -360,10 +370,73 @@ def load_get_entries(doc):
 	else:	
 		Final_Tran=[]
 
+	# Sort the list of transactions by supplier id, due date
 	Final_Tran = sorted(Final_Tran, key=lambda d: d['due_date'])
 	Final_Tran = sorted(Final_Tran, key=lambda d: d['party_ref'])
-
+	
 	return {'transactions': Final_Tran, 'modes_of_payment': modes_of_payment}
+
+# @frappe.whitelist()
+# def get_entries(doc):
+# 	doc = frappe._dict(json.loads(doc)) if isinstance(doc, str) else doc
+# 	if isinstance(doc.end_date, str):
+# 		doc.end_date = getdate(doc.end_date) 
+# 	modes_of_payment = frappe.get_all('Mode of Payment' , order_by='name')
+# 	#modes_of_payment = frappe.get_all('Mode of Payment' ,filters = {'name':'Cheque'}, order_by='name')
+# 	if frappe.db.exists('Cheque Run', doc.name):		
+# 		db_doc = frappe.get_doc('Cheque Run', doc.name)				
+
+# 		if doc.start_date == db_doc.start_date and doc.end_date == db_doc.end_date and db_doc.transactions:
+# 			return {'transactions': json.loads(db_doc.transactions), 'modes_of_payment': modes_of_payment}	
+	
+# 	transactions = query_pending_transactions(doc)
+	
+# 	return {'transactions': transactions, 'modes_of_payment': modes_of_payment}
+
+# @frappe.whitelist()
+# def load_get_entries(doc):
+# 	doc = frappe._dict(json.loads(doc)) if isinstance(doc, str) else doc
+# 	if isinstance(doc.end_date, str):
+# 		doc.end_date = getdate(doc.end_date) 
+# 	modes_of_payment = frappe.get_all('Mode of Payment' , order_by='name')
+# 	#modes_of_payment = frappe.get_all('Mode of Payment' ,filters = {'name':'Cheque'}, order_by='name')
+# 	transactions_existing = []
+# 	dict_transactions_existing = []
+# 	dict_transactions_new = []
+# 	transactions_final =[]
+
+# 	# Get a list of transactions already associated with this cheque run
+# 	if frappe.db.exists('Cheque Run', doc.name):			
+# 		db_doc = frappe.get_doc('Cheque Run', doc.name)	
+		
+# 		if doc.start_date == db_doc.start_date and doc.end_date == db_doc.end_date and db_doc.transactions:
+# 			transactions_existing = json.loads(db_doc.transactions)
+# 			dict_transactions_existing = {entry.get('name'): entry for entry in transactions_existing}	
+
+# 	if doc.start_date:
+# 		doc.start_date=doc.start_date	
+# 	else:
+# 		doc.start_date="2019-01-01"	
+	
+# 	# Get a list of doc types that require payment from the database
+# 	transactions_new = query_pending_transactions(doc)
+
+# 	# Convert list of new transactions to a dictionary	 
+# 	if transactions_new:
+# 		dict_transactions_new = {entry.get('name'): entry for entry in transactions_new}	
+		
+# 	# Merge both the new and existing transactions together, giving preference to 
+# 	# the list of new transactions if there is a conflict.
+# 	transactions_final = transactions_new
+
+# 	for transaction_name in dict_transactions_existing.keys() - dict_transactions_new.keys():
+# 		transactions_final.append(dict_transactions_existing.get(transaction_name))
+
+# 	# Sort the list of transactions by supplier id, due date
+# 	#transactions_final = sorted(transactions_final, key=lambda d: d['due_date'])
+# 	#transactions_final = sorted(transactions_final, key=lambda d: d['party_ref'])
+
+# 	return {'transactions': transactions_final, 'modes_of_payment': modes_of_payment}
 
 @frappe.whitelist()
 def get_balance(doc):
@@ -373,15 +446,7 @@ def get_balance(doc):
 	gl_account = frappe.get_value('Bank Account', doc.bank_account, 'account')
 	return get_balance_on(gl_account, doc.cheque_run_date)
 
-def has_existing_transactions(doc, db_doc):
-	start_match = (doc.start_date == db_doc.start_date) or (doc.start_date == None and db_doc.start_date == None)
-	end_match = (doc.end_date == db_doc.end_date) or (doc.end_date == None and db_doc.end_date == None)
-	has_transactions = db_doc.transactions and start_match and end_match
-	frappe.msgprint(f'Start: {start_match}, End: {end_match}, Transactions: {db_doc.transactions}\n\nMatch? {has_transactions}')
-
-	return start_match and end_match and has_transactions
-
-def query_transactions(doc):
+def query_pending_transactions(doc):
 	return frappe.db.sql("""
 	(
 		SELECT
@@ -479,7 +544,7 @@ def query_transactions(doc):
 			`tabJournal Entry`.name = `tabJournal Entry Account`.parent AND
 			`tabJournal Entry`.company = %(company)s AND
 			`tabJournal Entry`.docstatus = 1 AND
-			`tabJournal Entry Account`.account = %(pay_to_account)s		 AND
+			`tabJournal Entry Account`.account = %(pay_to_account)s	AND
 			`tabJournal Entry`.due_date <= %(end_date)s AND
 			`tabJournal Entry`.name NOT in (
 				SELECT 
