@@ -115,7 +115,7 @@ class ChequeRun(Document):
 			ach_only.ach_only = False
 			ach_only.print_cheques_only = False
 			return ach_only
-		if any([t.get('mode_of_payment') == 'Cheque' for t in transactions]):
+		if any([t.get('mode_of_payment') in ('Cheque', 'USCheque') for t in transactions]):
 			ach_only.ach_only = False
 		if any([t.get('mode_of_payment') in ('ACH/EFT', 'ECheque') for t in transactions]):
 			ach_only.print_cheques_only = False
@@ -130,7 +130,7 @@ class ChequeRun(Document):
 		for party_ref, _group in groupby(transactions, key=lambda x: x.party_ref):
 			_group = list(_group)
 			# split cheques in groups of 5 if first reference is a cheque
-			groups = list(zip_longest(*[iter(_group)] * 5)) if _group[0].mode_of_payment == 'Cheque' else [_group]
+			groups = list(zip_longest(*[iter(_group)] * 5)) if _group[0].mode_of_payment in ('Cheque', 'USCheque') else [_group]
 			if not groups:
 				continue
 			for group in groups:
@@ -154,7 +154,7 @@ class ChequeRun(Document):
 				pe.cheque_run = self.name
 				total_amount = 0
 
-				if pe.mode_of_payment == 'Cheque':
+				if pe.mode_of_payment in ('Cheque', 'USCheque'):
 					pe.reference_no = int(self.initial_cheque_number) + cheque_count
 					cheque_count += 1
 					self.final_cheque_number = pe.reference_no
