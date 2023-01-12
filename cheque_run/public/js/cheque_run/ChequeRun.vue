@@ -203,8 +203,9 @@
 
                         <td>
                             <a :href="transactionUrl(item)" target="_blank">
-                                {{ `${item.ref_number}\n${item.name}` }}
+                                {{ item.name }}
                             </a>
+                            <p>{{ item.ref_number || '' }}</p>
                         </td>
 
                         <td>
