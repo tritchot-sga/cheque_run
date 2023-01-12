@@ -141,7 +141,13 @@
 
                     <th class="col col-sm-2">
                         <span class="cheque-run-sort-indicator" id="cheque-run-doc-sort">
-                            Document
+                            Invoice Number
+                        </span>
+                    </th>
+
+                    <th class="col col-sm-2">
+                        <span class="cheque-run-sort-indicator" id="cheque-run-doc-sort">
+                            Supplier Invoice
                         </span>
                     </th>
 
@@ -203,7 +209,13 @@
 
                         <td>
                             <a :href="transactionUrl(item)" target="_blank">
-                                {{ item.ref_number || item.name}}
+                                {{ item.name}}
+                            </a>
+                        </td>
+
+                        <td>
+                            <a :href="transactionUrl(item)" target="_blank">
+                                {{ item.ref_number }}
                             </a>
                         </td>
 

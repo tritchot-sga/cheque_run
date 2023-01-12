@@ -360,7 +360,6 @@ def load_get_entries(doc):
 		Final_Tran=[]
 
 	# Sort the list of transactions by supplier id, due date
-	Final_Tran = sorted(Final_Tran, key=lambda d: d['due_date'])
 	Final_Tran = sorted(Final_Tran, key=lambda d: d['party_ref'])
 	
 	return {'transactions': Final_Tran, 'modes_of_payment': modes_of_payment}
