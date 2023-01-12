@@ -139,11 +139,15 @@ class ChequeRun(Document):
 				pe.payment_type = "Pay"
 				pe.posting_date = nowdate()
 				project = self.get_dimensions_from_references(group, 'project')
+				frappe.msgprint(f'Project1: {project}')
 				if project != 'None' and project:
 					pe.project = project
+					frappe.msgprint(f'Project2: {project}')
 				cost_center = self.get_dimensions_from_references(group, 'cost_center')
+				frappe.msgprint(f'Cost Center1: {cost_center}')
 				if cost_center != 'None' and project:
 					pe.cost_center = cost_center
+					frappe.msgprint(f'Cost Center2: {cost_center}')
 				pe.mode_of_payment = group[0].mode_of_payment
 				pe.company = self.company
 				pe.paid_from = gl_account
