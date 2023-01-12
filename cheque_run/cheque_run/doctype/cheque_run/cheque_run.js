@@ -51,7 +51,7 @@ frappe.ui.form.on("Cheque Run", {
 			}
 		})
 		get_entries(frm)
-		//confirm_print(frm)
+		confirm_print(frm)
 		if (frm.doc.docstatus > 0) {
 			frm.set_df_property('initial_cheque_number', 'read_only', 1)
 			frm.set_df_property('final_cheque_number', 'read_only', 1)
