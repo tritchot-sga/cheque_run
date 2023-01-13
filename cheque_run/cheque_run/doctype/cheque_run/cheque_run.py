@@ -135,6 +135,8 @@ class ChequeRun(Document):
 				continue
 			for group in groups:
 				_references = []
+
+				# Create a payment entry
 				pe = frappe.new_doc("Payment Entry")
 				pe.payment_type = "Pay"
 				pe.posting_date = nowdate()
@@ -169,26 +171,30 @@ class ChequeRun(Document):
 							"reference_doctype": reference.doctype,
 							"reference_name": reference.name or reference.ref_number,
 							"due_date": reference.get("due_date"),
-							"outstanding_amount": flt(reference.amount),
-							"allocated_amount": flt(reference.amount),
-							"total_amount": flt(reference.amount),
-							"discount_amount": flt(reference.discount),
+							"outstanding_amount": flt(reference.gross_amount),
+							"allocated_amount": flt(reference.gross_amount),
+							"total_amount": flt(reference.gross_amount),
 					})
+
+					pe.append('deductions', {
+						"account": "5300 - PURCHASE DISCOUNTS - WW", # self.discount_account, see accounts payable
+						"cost_center": cost_center,
+						"amount": flt(-1 * reference.discount * reference.conversion_rate),
+					})
+
 					total_amount += reference.amount
-					discount_amount += reference.amount
 					reference.cheque_number = pe.reference_no
 					_references.append(reference)
 
 				pe.received_amount = total_amount
-				pe.base_received_amount = total_amount
+				pe.base_received_amount = total_amount * group[0].conversion_rate
 				pe.paid_amount = total_amount
-				pe.base_paid_amount = total_amount
-				pe.discounted_amount = discount_amount
+				pe.base_paid_amount = total_amount * group[0].conversion_rate
 				pe.paid_from_account_currency = account_currency
 				pe.paid_to_account_currency = account_currency
 				pe.target_exchange_rate = group[0].conversion_rate
 				pe.source_exchange_rate = group[0].conversion_rate
-
+				
 				pe.save()
 				pe.submit()
 				for reference in _references:
