@@ -288,12 +288,13 @@ class ChequeRun(Document):
 		save_file(f"{self.name}.pdf", read_multi_pdf(output), None, self.name, 'Home/Cheque Run', False, 0)
 	
 @frappe.whitelist()
-def cheque_for_draft_cheque_run(company, bank_account, payable_account):	
+def cheque_for_draft_cheque_run(company, bank_account, payable_account, discount_account):	
 	existing = frappe.get_value(
 		'Cheque Run', {
 			'company': company,
 			'bank_account': bank_account,
 			'pay_to_account': payable_account,
+			'discount_account': discount_account,
 			'status': ['in', ['Draft', 'Submitted']],
 			'initial_cheque_number': ['!=', 0]
 		}
@@ -304,10 +305,14 @@ def cheque_for_draft_cheque_run(company, bank_account, payable_account):
 	cr.company = company
 	cr.bank_account = bank_account
 	cr.pay_to_account = payable_account	
+	cr.discount_account = discount_account
 	cr.save()
-	aa=frappe.db.sql("""update `tabCheque Run` set  pay_to_account=%(pay_to_account)s where name= %(name)s""", {
-		'pay_to_account': payable_account,'name':cr.name
-	}, as_dict=True)
+	aa=frappe.db.sql("""
+		update `tabCheque Run` set  
+			pay_to_account=%(pay_to_account)s,
+			discount_account=%(discount_account)s
+		where name= %(name)s""", 
+	{ 'pay_to_account': payable_account, 'discount_account': discount_account, 'name':cr.name }, as_dict=True)
 	return cr.name
 
 @frappe.whitelist()
