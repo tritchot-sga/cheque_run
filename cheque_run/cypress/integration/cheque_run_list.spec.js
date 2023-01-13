@@ -11,6 +11,7 @@ context('Cheque Run List', () => {
 		cy.get_field('company').focus().should('be.visible')
 		cy.get_field('bank_account').focus().should('be.visible')
 		cy.get_field('pay_to_account').focus().should('be.visible')
+		cy.get_field('discount_account').focus().should('be.visible')
 		cy.fill_field("bank_account", "Primary Chequeing - Local Bank").blur()
 		cy.fill_field("pay_to_account", "Local Bank - CFC").blur()
 		cy.get('.btn-primary').contains('Save').should('be.visible').click()

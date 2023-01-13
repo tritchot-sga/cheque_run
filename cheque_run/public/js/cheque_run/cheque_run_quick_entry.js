@@ -23,6 +23,13 @@ frappe.ui.form.ChequeRunQuickEntryForm = frappe.ui.form.QuickEntryForm.extend({
 				}
 			}
 		}
+		this.dialog.fields_dict["discount_account"].get_query = () => {
+			return {
+				"filters": {
+					"company": this.dialog.get_field("company").value
+				}
+			}
+		}
 		frappe.db.get_value('Bank Account', {
 			company: frappe.defaults.get_default('company'),
 			is_default: 1,
@@ -78,6 +85,13 @@ frappe.ui.form.ChequeRunQuickEntryForm = frappe.ui.form.QuickEntryForm.extend({
 				fieldtype: "Link",
 				options: "Account",
 				reqd: 1
+			},
+			{
+				label: __("Discount Account"),
+				fieldname: "discount_account",
+				fieldtype: "Link",
+				options: "Account",
+				reqd: 1
 			}
 		]
 	},
@@ -87,7 +101,7 @@ frappe.ui.form.ChequeRunQuickEntryForm = frappe.ui.form.QuickEntryForm.extend({
 		this.dialog.set_primary_action(__('Start Cheque Run'), () => {
 			const values = me.dialog.get_values()
 			frappe.xcall("cheque_run.cheque_run.doctype.cheque_run.cheque_run.cheque_for_draft_cheque_run",
-				{ company: values.company, bank_account: values.bank_account, payable_account: values.pay_to_account }
+				{ company: values.company, bank_account: values.bank_account, payable_account: values.pay_to_account, discount_account: values.discount_account }
 			).then(r => {
 				frappe.set_route("Form", "Cheque Run", r)
 			})
