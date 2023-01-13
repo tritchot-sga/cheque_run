@@ -178,7 +178,7 @@ class ChequeRun(Document):
 				pe.cheque_run = self.name
 				total_amount = 0
 				total_amount_converted = 0
-				conversion_rate_cummulative = 0
+				conversion_rate = 0
 
 				if pe.mode_of_payment in ('Cheque', 'USCheque'):
 					pe.reference_no = int(self.initial_cheque_number) + cheque_count
@@ -205,7 +205,7 @@ class ChequeRun(Document):
 
 					pe.append('deductions', {
 						"account": self.discount_account,
-						"cost_center": cost_center,
+						"cost_center": cost_center, # THIS SHOULD BE 01 cost center for white-wood. Where does that come from?
 						"amount": flt(-1 * reference.discount * reference.conversion_rate),
 					})
 
