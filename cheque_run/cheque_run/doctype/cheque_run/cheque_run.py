@@ -186,7 +186,7 @@ class ChequeRun(Document):
 					})
 
 					pe.append('deductions', {
-						"account": "5300 - PURCHASE DISCOUNTS - WW", # self.discount_account, see accounts payable
+						"account": self.discount_account,
 						"cost_center": cost_center,
 						"amount": flt(-1 * reference.discount * reference.conversion_rate),
 					})
