@@ -28,6 +28,7 @@ class ChequeRun(Document):
 			if self.initial_cheque_number is None:
 				self.get_last_cheque_number()
 				self.get_default_payable_account()
+				self.get_default_discount_account()
 				self.set_default_dates()				
 		else:
 			self.validate_last_cheque_number()
@@ -56,6 +57,8 @@ class ChequeRun(Document):
 	def get_default_payable_account(self):
 		self.pay_to_account = frappe.get_value('Company', self.company, "default_payable_account")
 
+	def get_default_discount_account(self):
+		self.discount_account = frappe.get_value('Company', self.company, "default_discount_account")
 
 	def set_default_dates(self):
 		if not self.cheque_run_date:
@@ -126,6 +129,7 @@ class ChequeRun(Document):
 		cheque_count = 0
 		_transactions = []
 		account_currency = frappe.get_value('Account', self.pay_to_account, 'account_currency')
+		naming_series = None
 		gl_account = frappe.get_value('Bank Account', self.bank_account, 'account')
 		bank_name = frappe.get_value('Bank Account', self.bank_account, 'bank')
 		bank_account_no = frappe.get_value('Bank Account', self.bank_account, 'bank_account_no')
@@ -138,8 +142,21 @@ class ChequeRun(Document):
 			for group in groups:
 				_references = []
 
-				# Create a payment entry
-				pe = frappe.new_doc("Payment Entry")
+				# Get the payment entry naming series
+				# If none is found, throw an exception
+				expected_name = f"PEUR" # f"P{account_currency}"
+				naming_series_list = frappe.get_meta("Payment Entry").get_field("naming_series").options.split("\n")
+				for name in naming_series_list:
+					if (name.startswith(expected_name)):
+						naming_series = name
+						break
+
+				if (naming_series == None):
+					raise ReferenceError(f"Cheque Run Error - The requested payment entry naming series '{expected_name}' does not exist.")
+
+				# Create a payment entry and populate the payment entry details
+				pe = frappe.new_doc("Payment Entry") 
+				pe.naming_series = naming_series
 				pe.payment_type = "Pay"
 				pe.posting_date = nowdate()
 				project = frappe.db.get_value(group[0].doctype, group[0].name, "project")
@@ -160,7 +177,8 @@ class ChequeRun(Document):
 				pe.party_type = 'Supplier' if group[0].doctype == 'Purchase Invoice' else 'Employee'
 				pe.cheque_run = self.name
 				total_amount = 0
-				discount_amount = 0
+				total_amount_converted = 0
+				conversion_rate_cummulative = 0
 
 				if pe.mode_of_payment in ('Cheque', 'USCheque'):
 					pe.reference_no = int(self.initial_cheque_number) + cheque_count
@@ -192,17 +210,20 @@ class ChequeRun(Document):
 					})
 
 					total_amount += reference.amount
+					total_amount_converted += reference.amount * reference.conversion_rate
+					conversion_rate += reference.conversion_rate
+
 					reference.cheque_number = pe.reference_no
 					_references.append(reference)
 
 				pe.received_amount = total_amount
-				pe.base_received_amount = total_amount * group[0].conversion_rate
+				pe.base_received_amount = total_amount_converted
 				pe.paid_amount = total_amount
-				pe.base_paid_amount = total_amount * group[0].conversion_rate
+				pe.base_paid_amount = total_amount_converted
 				pe.paid_from_account_currency = account_currency
 				pe.paid_to_account_currency = account_currency
-				pe.target_exchange_rate = group[0].conversion_rate
-				pe.source_exchange_rate = group[0].conversion_rate
+				pe.target_exchange_rate = conversion_rate / len(group)
+				pe.source_exchange_rate = conversion_rate / len(group)
 				
 				pe.save()
 				pe.submit()

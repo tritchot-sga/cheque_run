@@ -44,6 +44,12 @@ frappe.ui.form.ChequeRunQuickEntryForm = frappe.ui.form.QuickEntryForm.extend({
 		.then(r => {
 			this.dialog.fields_dict["pay_to_account"].set_value(r.message.default_payable_account)
 		})
+		frappe.db.get_value('Company', {
+			name: frappe.defaults.get_default('company'),
+		}, 'default_discount_account')
+		.then(r => {
+			this.dialog.fields_dict["discount_account"].set_value(r.message.default_discount_account)
+		})
 		this.dialog.fields_dict["company"].df.onchange = () => {
 			const values = dialog.get_values()
 			if(!values.company){ return }
@@ -60,6 +66,12 @@ frappe.ui.form.ChequeRunQuickEntryForm = frappe.ui.form.QuickEntryForm.extend({
 			}, 'default_payable_account')
 			.then(r => {
 				this.dialog.fields_dict["pay_to_account"].set_value(r.message.default_payable_account)
+			})
+			frappe.db.get_value('Company', {
+				company: values.company,
+			}, 'default_discount_account')
+			.then(r => {
+				this.dialog.fields_dict["discount_account"].set_value(r.message.default_discount_account)
 			})
 		}
 	},
