@@ -144,15 +144,24 @@ class ChequeRun(Document):
 
 				# Get the payment entry naming series
 				# If none is found, throw an exception
-				expected_name = f"P{account_currency}"
-				naming_series_list = frappe.get_meta("Payment Entry").get_field("naming_series").options.split("\n")
-				for name in naming_series_list:
-					if (name.startswith(expected_name)):
-						naming_series = name
-						break
+				# Note that there is an exception for White-wood. This is really brittle and I hate it.
+				if self.company.startswith("White-Wood"):
+					if (account_currency == "CAD"):
+						naming_series = 'PCAD-'
+					else if (account_currency == "USD"):
+						naming_series = 'PUS-'
+					else:
+						raise ReferenceError(f"Cheque Run Error - No naming series configured for currency '{account_currency}' (White-Wood ONLY).")
+				else:
+					expected_name = f"P{account_currency}"
+					naming_series_list = frappe.get_meta("Payment Entry").get_field("naming_series").options.split("\n")
+					for name in naming_series_list:
+						if (name.startswith(expected_name)):
+							naming_series = name
+							break
 
-				if (naming_series == None):
-					raise ReferenceError(f"Cheque Run Error - The requested payment entry naming series '{expected_name}' does not exist.")
+					if (naming_series == None):
+						raise ReferenceError(f"Cheque Run Error - The requested payment entry naming series '{expected_name}' does not exist.")
 
 				# Create a payment entry and populate the payment entry details
 				pe = frappe.new_doc("Payment Entry") 
