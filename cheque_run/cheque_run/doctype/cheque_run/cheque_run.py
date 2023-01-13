@@ -153,6 +153,7 @@ class ChequeRun(Document):
 				pe.party_type = 'Supplier' if group[0].doctype == 'Purchase Invoice' else 'Employee'
 				pe.cheque_run = self.name
 				total_amount = 0
+				discount_amount = 0
 
 				if pe.mode_of_payment in ('Cheque', 'USCheque'):
 					pe.reference_no = int(self.initial_cheque_number) + cheque_count
@@ -171,16 +172,18 @@ class ChequeRun(Document):
 							"outstanding_amount": flt(reference.amount),
 							"allocated_amount": flt(reference.amount),
 							"total_amount": flt(reference.amount),
+							"discount_amount": flt(reference.discount),
 					})
 					total_amount += reference.amount
+					discount_amount += reference.amount
 					reference.cheque_number = pe.reference_no
 					_references.append(reference)
-
 
 				pe.received_amount = total_amount
 				pe.base_received_amount = total_amount
 				pe.paid_amount = total_amount
 				pe.base_paid_amount = total_amount
+				pe.discounted_amount = discount_amount
 				pe.paid_from_account_currency = account_currency
 				pe.paid_to_account_currency = account_currency
 				pe.target_exchange_rate = group[0].conversion_rate
