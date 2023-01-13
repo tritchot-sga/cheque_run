@@ -179,6 +179,7 @@ class ChequeRun(Document):
 				total_amount = 0
 				total_amount_converted = 0
 				conversion_rate = 0
+				ref_count = 0
 
 				if pe.mode_of_payment in ('Cheque', 'USCheque'):
 					pe.reference_no = int(self.initial_cheque_number) + cheque_count
@@ -212,6 +213,7 @@ class ChequeRun(Document):
 					total_amount += reference.amount
 					total_amount_converted += reference.amount * reference.conversion_rate
 					conversion_rate += reference.conversion_rate
+					ref_count += 1
 
 					reference.cheque_number = pe.reference_no
 					_references.append(reference)
@@ -222,8 +224,8 @@ class ChequeRun(Document):
 				pe.base_paid_amount = total_amount_converted
 				pe.paid_from_account_currency = account_currency
 				pe.paid_to_account_currency = account_currency
-				pe.target_exchange_rate = conversion_rate / len(group)
-				pe.source_exchange_rate = conversion_rate / len(group)
+				pe.target_exchange_rate = conversion_rate / ref_count
+				pe.source_exchange_rate = conversion_rate / ref_count
 				
 				pe.save()
 				pe.submit()
