@@ -144,7 +144,7 @@ class ChequeRun(Document):
 
 				# Get the payment entry naming series
 				# If none is found, throw an exception
-				expected_name = f"PEUR" # f"P{account_currency}"
+				expected_name = f"P{account_currency}"
 				naming_series_list = frappe.get_meta("Payment Entry").get_field("naming_series").options.split("\n")
 				for name in naming_series_list:
 					if (name.startswith(expected_name)):
