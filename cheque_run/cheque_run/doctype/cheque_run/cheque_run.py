@@ -148,7 +148,7 @@ class ChequeRun(Document):
 				if self.company.startswith("White-Wood"):
 					if (account_currency == "CAD"):
 						naming_series = 'PCAD-'
-					else if (account_currency == "USD"):
+					elif (account_currency == "USD"):
 						naming_series = 'PUS-'
 					else:
 						raise ReferenceError(f"Cheque Run Error - No naming series configured for currency '{account_currency}' (White-Wood ONLY).")
