@@ -21,6 +21,7 @@
         "company",
         "bank_account",
         "pay_to_account",
+        "discount_account",
         "section_break_9",
         "mode_of_payment",
         "cheque_run_table",
@@ -101,6 +102,14 @@
             "fieldname": "pay_to_account",
             "fieldtype": "Link",
             "label": "Accounts Payable",
+            "options": "Account",
+            "remember_last_selected_value": 1,
+            "reqd": 1
+        },
+        {
+            "fieldname": "discount_account",
+            "fieldtype": "Link",
+            "label": "Discount Account",
             "options": "Account",
             "remember_last_selected_value": 1,
             "reqd": 1

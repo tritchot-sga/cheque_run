@@ -133,6 +133,13 @@ function set_queries(frm) {
 			}
 		}
 	})
+	frm.set_query("discount_account", function () {
+		return {
+			"filters": {
+				"account_name": "PURCHASE DISCOUNTS",
+			}
+		}
+	})
 }
 
 function get_entries(frm) {

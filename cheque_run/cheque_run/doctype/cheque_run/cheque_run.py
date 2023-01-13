@@ -127,6 +127,8 @@ class ChequeRun(Document):
 		_transactions = []
 		account_currency = frappe.get_value('Account', self.pay_to_account, 'account_currency')
 		gl_account = frappe.get_value('Bank Account', self.bank_account, 'account')
+		bank_name = frappe.get_value('Bank Account', self.bank_account, 'bank')
+		bank_account_no = frappe.get_value('Bank Account', self.bank_account, 'bank_account_no')
 		for party_ref, _group in groupby(transactions, key=lambda x: x.party_ref):
 			_group = list(_group)
 			# split cheques in groups of 5 if first reference is a cheque
@@ -148,6 +150,9 @@ class ChequeRun(Document):
 					pe.cost_center = cost_center
 				pe.mode_of_payment = group[0].mode_of_payment
 				pe.company = self.company
+				pe.bank_account = self.bank_account
+				pe.bank = bank_name
+				pe.bank_account_no = bank_account_no
 				pe.paid_from = gl_account
 				pe.paid_to = self.pay_to_account
 				pe.reference_date = self.cheque_run_date
@@ -167,9 +172,13 @@ class ChequeRun(Document):
 				for reference in group:
 					if not reference:
 						continue
+
+					payment_term = frappe.get_value('Payment Schedule', {'parent': reference.name}, 'payment_term')
+					
 					pe.append('references', {
 							"reference_doctype": reference.doctype,
 							"reference_name": reference.name or reference.ref_number,
+							"payment_term": payment_term,
 							"due_date": reference.get("due_date"),
 							"outstanding_amount": flt(reference.gross_amount),
 							"allocated_amount": flt(reference.gross_amount),
