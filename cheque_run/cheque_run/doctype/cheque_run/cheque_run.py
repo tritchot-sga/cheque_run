@@ -177,7 +177,6 @@ class ChequeRun(Document):
 				pe.party_type = 'Supplier' if group[0].doctype == 'Purchase Invoice' else 'Employee'
 				pe.cheque_run = self.name
 				total_amount = 0
-				total_amount_converted = 0
 				conversion_rate = 0
 				ref_count = 0
 
@@ -207,26 +206,30 @@ class ChequeRun(Document):
 					pe.append('deductions', {
 						"account": self.discount_account,
 						"cost_center": cost_center, # THIS SHOULD BE 01 cost center for white-wood. Where does that come from?
-						"amount": flt(-1 * reference.discount * reference.conversion_rate),
+						"amount": flt(-1 * round(reference.discount * reference.conversion_rate, 2)),
 					})
 
+					frappe.msgprint(f'{flt(-1 * round(reference.discount * reference.conversion_rate, 2))}')
+
 					total_amount += reference.amount
-					total_amount_converted += reference.amount * reference.conversion_rate
 					conversion_rate += reference.conversion_rate
 					ref_count += 1
 
 					reference.cheque_number = pe.reference_no
 					_references.append(reference)
 
-				pe.received_amount = total_amount
-				pe.base_received_amount = total_amount_converted
-				pe.paid_amount = total_amount
-				pe.base_paid_amount = total_amount_converted
+				# Conversion rates are stored in the database with 9 decimal places.
+				conversion_rate = round(conversion_rate / ref_count, 9)
+
+				pe.received_amount = round(total_amount, 2)
+				pe.base_received_amount = round(total_amount * conversion_rate, 2)
+				pe.paid_amount = round(total_amount, 2)
+				pe.base_paid_amount = round(total_amount * conversion_rate, 2)
 				pe.paid_from_account_currency = account_currency
 				pe.paid_to_account_currency = account_currency
-				pe.target_exchange_rate = conversion_rate / ref_count
-				pe.source_exchange_rate = conversion_rate / ref_count
-				
+				pe.target_exchange_rate = conversion_rate
+				pe.source_exchange_rate = conversion_rate
+
 				pe.save()
 				pe.submit()
 				for reference in _references:
@@ -434,8 +437,8 @@ def query_pending_transactions(doc):
 			`tabPurchase Invoice`.posting_date,
 			CASE WHEN `tabPurchase Invoice`.status = 'Paid' THEN 'true' else 'false' END as IsPaid,
 			COALESCE(`tabPurchase Invoice`.supplier_default_mode_of_payment, `tabSupplier`.supplier_default_mode_of_payment, '\n') AS mode_of_payment,
-			CASE WHEN `tabPayment Schedule`.discount_date >= %(cheque_run_date)s THEN `tabPayment Schedule`.early_payment_discount_amount ELSE 0 END AS discount,
-			CASE WHEN `tabPayment Schedule`.discount_date >= %(cheque_run_date)s THEN `tabPurchase Invoice`.outstanding_amount - `tabPayment Schedule`.early_payment_discount_amount ELSE `tabPurchase Invoice`.outstanding_amount END AS amount
+			CASE WHEN `tabPayment Schedule`.discount_date >= %(cheque_run_date)s THEN ROUND(`tabPayment Schedule`.early_payment_discount_amount, 2) ELSE 0 END AS discount,
+			CASE WHEN `tabPayment Schedule`.discount_date >= %(cheque_run_date)s THEN `tabPurchase Invoice`.outstanding_amount - ROUND(`tabPayment Schedule`.early_payment_discount_amount, 2) ELSE `tabPurchase Invoice`.outstanding_amount END AS amount
 		FROM `tabPurchase Invoice`
 		INNER JOIN `tabSupplier` ON `tabSupplier`.name = `tabPurchase Invoice`.supplier
 		INNER JOIN `tabPayment Schedule` ON `tabPayment Schedule`.parent = `tabPurchase Invoice`.name 
