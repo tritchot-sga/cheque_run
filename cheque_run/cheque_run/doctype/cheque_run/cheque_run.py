@@ -84,8 +84,30 @@ class ChequeRun(Document):
 		self.dt_pes = []
 		transactions = self.transactions
 		transactions = json.loads(transactions)
+
+		# Make sure the cheque run has at least 1 transaction to be paid.
 		if len(transactions) < 1:
 			frappe.throw("You must select at least one Invoice to pay.")
+
+		num_to_pay = 0
+		for item in filter(lambda x: x.get("pay"), transactions):
+			num_to_pay += 1 
+
+		if (num_to_pay < 1):
+			frappe.throw("You must select at least one Invoice to pay.")
+
+		# Make sure the accounts payable account currency matches the bank account currency.
+		bank_account = frappe.get_value("Bank Account", self.bank_account, "account")
+		bank_account_currency = frappe.get_value("Account", bank_account, "account_currency")
+		ap_account_currency = frappe.get_value('Account', self.pay_to_account, 'account_currency')
+		if (bank_account_currency != ap_account_currency):
+			frappe.throw(f"The accounts payable account currency ({ap_account_currency}) must match the bank account currency ({bank_account_currency}).")
+
+		# Make sure each transaction to be paid has a method of payment selected.
+		for transaction in filter(lambda x: x.get("pay"), transactions):
+			if (len(transaction.get("mode_of_payment")) <= 1):
+				frappe.throw("One or more transactions do not have a method of payment selected.")
+
 		transactions = sorted([frappe._dict(item) for item in transactions if item.get("pay")], key=lambda x: x.party)
 		_transactions = self.create_payment_entries(transactions)
 		self.print_count = 0
@@ -133,10 +155,14 @@ class ChequeRun(Document):
 		gl_account = frappe.get_value('Bank Account', self.bank_account, 'account')
 		bank_name = frappe.get_value('Bank Account', self.bank_account, 'bank')
 		bank_account_no = frappe.get_value('Bank Account', self.bank_account, 'bank_account_no')
+		exchange_loss_account = frappe.get_value('Company', self.company, "exchange_gain_loss_account")
+		default_cost_center = frappe.get_value('Company', self.company, "cost_center")
+		
 		for party_ref, _group in groupby(transactions, key=lambda x: x.party_ref):
 			_group = list(_group)
-			# split cheques in groups of 5 if first reference is a cheque
-			groups = list(zip_longest(*[iter(_group)] * 5)) if _group[0].mode_of_payment in ('Cheque', 'USCheque') else [_group]
+			# Split cheques in groups of 30 if first reference is a cheque
+			# Note that this must match with the print format for the cheques. 
+			groups = list(zip_longest(*[iter(_group)] * 30)) if _group[0].mode_of_payment in ('Cheque', 'USCheque') else [_group]
 			if not groups:
 				continue
 			for group in groups:
@@ -193,6 +219,7 @@ class ChequeRun(Document):
 
 					payment_term = frappe.get_value('Payment Schedule', {'parent': reference.name}, 'payment_term')
 					
+					# Add details for the transaction to the payment entry
 					pe.append('references', {
 							"reference_doctype": reference.doctype,
 							"reference_name": reference.name or reference.ref_number,
@@ -203,13 +230,13 @@ class ChequeRun(Document):
 							"total_amount": flt(reference.gross_amount),
 					})
 
-					pe.append('deductions', {
-						"account": self.discount_account,
-						"cost_center": cost_center, # THIS SHOULD BE 01 cost center for white-wood. Where does that come from?
-						"amount": flt(-1 * round(reference.discount * reference.conversion_rate, 2)),
-					})
-
-					frappe.msgprint(f'{flt(-1 * round(reference.discount * reference.conversion_rate, 2))}')
+					# If the transaction has a discount, add it.
+					if (abs(reference.discount) > 0):
+						pe.append('deductions', {
+							"account": self.discount_account,
+							"cost_center": default_cost_center,
+							"amount": flt(-1 * round(reference.discount * reference.conversion_rate, 2)),
+						})
 
 					total_amount += reference.amount
 					conversion_rate += reference.conversion_rate
@@ -229,12 +256,29 @@ class ChequeRun(Document):
 				pe.paid_to_account_currency = account_currency
 				pe.target_exchange_rate = conversion_rate
 				pe.source_exchange_rate = conversion_rate
+				pe.save()
 
+				# It's possible that during currency conversion and rounding calculations, that there
+				# are a few cents remaining that need to be allocated. In these cases, dump them into 
+				# the exchange gain/loss account.
+				#   Note: Also adding a check to make sure we don't accidentally make a mistake and 
+				#		  allocate a large value to this. Shouldn't be more than ~2 cents per invoice.
+				if (abs(pe.difference_amount) > 0 and abs(pe.difference_amount) <= ref_count * 0.02):
+					rounding_cost_center = frappe.get_value('Company', self.company, "round_off_cost_center")
+					pe.append('deductions', {
+						"account": exchange_loss_account,
+						"cost_center": rounding_cost_center,
+						"amount": flt(pe.difference_amount),
+					})
+
+				# Finally, submit the transaction
 				pe.save()
 				pe.submit()
+
 				for reference in _references:
 					reference.payment_entry = pe.name
 					_transactions.append(reference)
+
 		return _transactions
 
 	def get_dimensions_from_references(self, references, dimension):
