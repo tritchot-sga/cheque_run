@@ -487,7 +487,7 @@ def query_pending_transactions(doc):
 		INNER JOIN `tabSupplier` ON `tabSupplier`.name = `tabPurchase Invoice`.supplier
 		INNER JOIN `tabPayment Schedule` ON `tabPayment Schedule`.parent = `tabPurchase Invoice`.name 
 		WHERE 
-			`tabPurchase Invoice`.outstanding_amount > 0 AND
+			`tabPurchase Invoice`.outstanding_amount != 0 AND
 			`tabPurchase Invoice`.company = %(company)s AND
 			`tabPurchase Invoice`.docstatus = 1 AND
 			`tabPurchase Invoice`.credit_to = %(pay_to_account)s AND
