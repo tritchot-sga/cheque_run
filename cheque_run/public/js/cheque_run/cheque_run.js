@@ -16,11 +16,13 @@ cheque_run.mount_table = frm => {
 		modes_of_payment: frm.modes_of_payment,
 		show_party_filter: false,
 		cheque_run_total: function () {
-			return this.transactions.reduce((partialSum, t) => {
-				var val = t.pay ? Math.round(partialSum + t.amount, 2) : partialSum;
-				alert(val)
-				return val;
+			var value = this.transactions.reduce((partialSum, t) => {
+				return t.pay ? Math.round(partialSum + t.amount, 2) : partialSum;
 			}, 0);
+
+			// For some reason, this was originally returning an incorrectly rounded values
+			// when applying negative numbers. This solves this rounding issue.
+			return Number(Math.round(value + 'e2') + 'e-2');
 		},
 		selectedRow: 0,
 		mopsOpen: 0
