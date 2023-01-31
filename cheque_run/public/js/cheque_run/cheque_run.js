@@ -17,7 +17,7 @@ cheque_run.mount_table = frm => {
 		show_party_filter: false,
 		cheque_run_total: function () {
 			var value = this.transactions.reduce((partialSum, t) => {
-				return t.pay ? Math.round(partialSum + t.amount, 2) : partialSum;
+				return t.pay ? partialSum + t.amount : partialSum;
 			}, 0);
 
 			// For some reason, this was originally returning an incorrectly rounded values
