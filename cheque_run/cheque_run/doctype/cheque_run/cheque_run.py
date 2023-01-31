@@ -7,6 +7,7 @@ from itertools import groupby, zip_longest
 from io import StringIO
 from PyPDF2 import PdfFileWriter
 import frappe
+import locale
 from frappe.model.document import Document
 from frappe.utils.data import flt
 from frappe.utils.data import date_diff, add_days, nowdate, getdate, now, get_datetime
@@ -85,17 +86,6 @@ class ChequeRun(Document):
 		transactions = self.transactions
 		transactions = json.loads(transactions)
 
-		# Make sure the cheque run has at least 1 transaction to be paid.
-		if len(transactions) < 1:
-			frappe.throw("You must select at least one Invoice to pay.")
-
-		num_to_pay = 0
-		for item in filter(lambda x: x.get("pay"), transactions):
-			num_to_pay += 1 
-
-		if (num_to_pay < 1):
-			frappe.throw("You must select at least one Invoice to pay.")
-
 		# Make sure the accounts payable account currency matches the bank account currency.
 		bank_account = frappe.get_value("Bank Account", self.bank_account, "account")
 		bank_account_currency = frappe.get_value("Account", bank_account, "account_currency")
@@ -103,12 +93,32 @@ class ChequeRun(Document):
 		if (bank_account_currency != ap_account_currency):
 			frappe.throw(f"The accounts payable account currency ({ap_account_currency}) must match the bank account currency ({bank_account_currency}).")
 
+		# Create a list of transactions that require payment, sorted by payee
+		transactions = sorted([frappe._dict(item) for item in transactions if item.get("pay")], key=lambda x: x.party)
+
+		# Make sure the cheque run has at least 1 transaction to be paid.
+		if len(transactions) < 1:
+			frappe.throw("You must select at least one Invoice to pay.")
+
 		# Make sure each transaction to be paid has a method of payment selected.
-		for transaction in filter(lambda x: x.get("pay"), transactions):
+		for transaction in transactions:
 			if (len(transaction.get("mode_of_payment")) <= 1):
 				frappe.throw("One or more transactions do not have a method of payment selected.")
 
-		transactions = sorted([frappe._dict(item) for item in transactions if item.get("pay")], key=lambda x: x.party)
+		# Make sure the total payment for each party is a non-negative value.
+		party_totals = {}
+		for transaction in transactions:
+			if (transaction.party_ref not in party_totals):
+				party_totals[transaction.party_ref] = { 'name': transaction.party, 'amount': transaction.amount }
+			else:
+				party_totals[transaction.party_ref]['amount'] += transaction.amount
+
+		for party in party_totals:
+			if (party_totals[party]['amount'] <= 0):
+				locale.setlocale(locale.LC_ALL, '')
+				frappe.throw(f"""Invalid payment for supplier '{party} - {party_totals[party]['name']}'. Total payment must be greater 
+					than zero ({locale.currency(party_totals[party]['amount'], grouping=True)}).""")
+
 		_transactions = self.create_payment_entries(transactions)
 		self.print_count = 0
 		self.transactions = json.dumps(_transactions)
