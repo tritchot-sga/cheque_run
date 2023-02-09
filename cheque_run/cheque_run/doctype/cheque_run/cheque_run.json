@@ -152,6 +152,7 @@
             "allow_on_submit": 1,
             "fieldname": "transactions",
             "fieldtype": "Long Text",
+            "label": "Transactions",
             "hidden": 1,
             "ignore_xss_filter": 1
         },
@@ -159,6 +160,7 @@
             "allow_on_submit": 1,
             "fieldname": "print_count",
             "fieldtype": "Int",
+            "label": "Print Count",
             "hidden": 1
         },
         {
@@ -166,6 +168,7 @@
             "default": "Draft",
             "fieldname": "status",
             "fieldtype": "Select",
+            "label": "Status",
             "hidden": 1,
             "options": "Draft\nSubmitted\nConfirm Print\nPrinted"
         },
