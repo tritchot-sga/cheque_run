@@ -146,7 +146,7 @@
             "fieldname": "cheque_run_date",
             "fieldtype": "Date",
             "label": "Cheque Run Date",
-            "read_only": 1
+            "read_only": 0
         },
         {
             "allow_on_submit": 1,
