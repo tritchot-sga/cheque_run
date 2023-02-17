@@ -170,9 +170,11 @@ class ChequeRun(Document):
 		
 		for party_ref, _group in groupby(transactions, key=lambda x: x.party_ref):
 			_group = list(_group)
+
 			# Split cheques in groups of 20 if first reference is a cheque
 			# Note that this must match with the print format for the cheques. 
 			groups = list(zip_longest(*[iter(_group)] * 20)) if _group[0].mode_of_payment in ('Cheque', 'USCheque') else [_group]
+
 			if not groups:
 				continue
 			for group in groups:

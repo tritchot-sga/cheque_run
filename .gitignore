@@ -2,3 +2,6 @@
 *.egg-info
 mode_modules
 node_modules
+/cheque_run/cheque_run/__pycache__/*.pyc
+/cheque_run/cheque_run/doctype/__pycache__/*.pyc
+/cheque_run/cheque_run/doctype/cheque_run/__pycache__/*.pyc
