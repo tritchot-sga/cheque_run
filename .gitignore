@@ -1,2 +1,4 @@
 *.pyc
-cheque_run.egg-info
+*.egg-info
+mode_modules
+node_modules
