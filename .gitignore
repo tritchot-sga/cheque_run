@@ -2,3 +2,4 @@
 *.egg-info
 mode_modules
 node_modules
+cypress
